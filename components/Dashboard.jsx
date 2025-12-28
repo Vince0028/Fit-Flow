@@ -6,6 +6,46 @@ import { MUSCLE_ICONS } from '../constants';
 const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
     const [editingExercise, setEditingExercise] = useState(null);
 
+    // Helper to calculate weekly progress
+    const getWeeklyProgress = () => {
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        const day = startOfWeek.getDay(); // 0 (Sun) to 6 (Sat)
+
+        // Calculate Monday of current week
+        // if day is 0 (Sunday), we want to go back 6 days to Monday
+        // if day is 1 (Monday), we stay (diff = 0)
+        // correct formula: date - day + 1 (if sunday, special case)
+
+        // Let's treat Monday as start index 0. 
+        // JS getDay(): Sun=0, Mon=1, ..., Sat=6
+        // shift to Mon=0, ..., Sun=6
+        const currentDayIndex = day === 0 ? 6 : day - 1;
+        startOfWeek.setDate(today.getDate() - currentDayIndex);
+
+        return days.map((dayName, index) => {
+            const dateToCheck = new Date(startOfWeek);
+            dateToCheck.setDate(startOfWeek.getDate() + index);
+
+            // Find session for this specific date
+            const session = sessions.find(s => {
+                const sDate = new Date(s.date);
+                return sDate.getDate() === dateToCheck.getDate() &&
+                    sDate.getMonth() === dateToCheck.getMonth() &&
+                    sDate.getFullYear() === dateToCheck.getFullYear();
+            });
+
+            if (!session || !session.exercises || session.exercises.length === 0) return { day: dayName, progress: 0 };
+
+            const completed = session.exercises.filter(e => e.completed).length;
+            const total = session.exercises.length;
+            return { day: dayName, progress: Math.round((completed / total) * 100) };
+        });
+    };
+
+    const weeklyProgress = getWeeklyProgress();
+
     const stats = [
         { label: 'Total Logs', value: sessions.length.toString(), icon: <Target size={20} className="text-emerald-400" />, sub: 'Workouts logged' },
         { label: 'Weekly Streak', value: sessions.length > 0 ? '1' : '0', icon: <Flame size={20} className="text-orange-400" />, sub: 'Keep it going!' },
@@ -131,12 +171,16 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
                     <div className="bg-[var(--bg-secondary)] organic-shape organic-border p-6 subtle-depth">
                         <h3 className="text-sm font-bold text-[var(--text-secondary)] mb-6 uppercase tracking-widest">Progress Tracker</h3>
                         <div className="space-y-4">
-                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
-                                <div key={day} className="flex items-center gap-3">
-                                    <div className="w-8 text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase">{day.slice(0, 3)}</div>
+                            {weeklyProgress.map((item) => (
+                                <div key={item.day} className="flex items-center gap-3">
+                                    <div className="w-8 text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase">{item.day.slice(0, 3)}</div>
                                     <div className="flex-1 h-2 bg-[var(--bg-primary)] rounded-full overflow-hidden">
-                                        <div className="h-full bg-[var(--accent)]" style={{ width: `${Math.random() * 80 + 20}%` }}></div>
+                                        <div
+                                            className="h-full bg-[var(--accent)] transition-all duration-1000 ease-out"
+                                            style={{ width: `${item.progress}%` }}
+                                        ></div>
                                     </div>
+                                    <div className="text-[10px] font-bold text-[var(--text-secondary)] w-6 text-right">{item.progress}%</div>
                                 </div>
                             ))}
                         </div>
