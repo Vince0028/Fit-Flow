@@ -67,15 +67,8 @@ Follow these steps to set up the project locally.
     npm install
     ```
 
-3.  **Configure Environment Variables**
-    Create a `.env.local` file in the root directory:
-    ```env
-    VITE_SUPABASE_URL=your_supabase_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    VITE_GEMINI_API_KEY=your_gemini_api_key
-    ```
 
-4.  **Run the App**
+3.  **Run the App**
     ```bash
     npm run dev
     ```
