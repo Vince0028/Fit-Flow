@@ -1,11 +1,18 @@
 
 import React, { useState } from 'react';
 import { Pencil, Trash2, Plus, X } from 'lucide-react';
-import { MUSCLE_ICONS, getMuscleGroup, COMMON_EXERCISES } from '../constants';
+import { MUSCLE_ICONS, getMuscleGroup, COMMON_EXERCISES } from '../../constants';
 
 const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const [editingDay, setEditingDay] = useState(null);
+    const [activeMuscleDropdown, setActiveMuscleDropdown] = useState({ day: null, index: null });
+
+
+
+
+
+
 
     const removeExercise = (day, exIndex) => {
         confirmAction(
@@ -39,7 +46,7 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
             const dayPlan = prev[day];
             const newExs = [...dayPlan.exercises];
 
-            // Auto-detect muscle group if name changes
+
             if (field === 'name') {
                 newExs[index] = {
                     ...newExs[index],
@@ -109,21 +116,41 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
                                 {plan.exercises.map((ex, i) => (
                                     <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-[var(--bg-primary)]/50 border border-[var(--border)] organic-shape">
                                         <div className="flex items-center gap-3 flex-1">
-                                            <div className="relative p-2 bg-[var(--bg-secondary)] organic-shape border border-[var(--border)]">
+                                            <div
+                                                className={`relative p-2 bg-[var(--bg-secondary)] organic-shape border border-[var(--border)] transition-colors ${isEditing ? 'cursor-pointer hover:border-[var(--accent)]' : ''}`}
+                                                onClick={(e) => {
+                                                    if (isEditing) {
+                                                        e.stopPropagation();
+                                                        setActiveMuscleDropdown(activeMuscleDropdown.day === day && activeMuscleDropdown.index === i ? { day: null, index: null } : { day, index: i });
+                                                    }
+                                                }}
+                                            >
                                                 {MUSCLE_ICONS[ex.muscleGroup]}
-                                                {isEditing && (
-                                                    <select
-                                                        value={ex.muscleGroup}
-                                                        onChange={(e) => updateExercise(day, i, 'muscleGroup', e.target.value)}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                        title="Change target muscle"
-                                                    >
-                                                        {Object.keys(MUSCLE_ICONS).map(m => (
-                                                            <option key={m} value={m}>{m}</option>
-                                                        ))}
-                                                    </select>
+
+
+                                                {isEditing && activeMuscleDropdown.day === day && activeMuscleDropdown.index === i && (
+                                                    <div className="absolute top-12 left-0 z-[100] w-48 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
+                                                            {Object.keys(MUSCLE_ICONS).map(m => (
+                                                                <button
+                                                                    key={m}
+                                                                    onClick={() => {
+                                                                        updateExercise(day, i, 'muscleGroup', m);
+                                                                        setActiveMuscleDropdown({ day: null, index: null });
+                                                                    }}
+                                                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${ex.muscleGroup === m ? 'bg-[var(--accent)] text-[var(--bg-primary)]' : 'hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                                                                >
+                                                                    {React.cloneElement(MUSCLE_ICONS[m], { size: 16 })} {m}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
                                                 )}
                                             </div>
+
+                                            {isEditing && activeMuscleDropdown.day === day && activeMuscleDropdown.index === i && (
+                                                <div className="fixed inset-0 z-[99]" onClick={(e) => { e.stopPropagation(); setActiveMuscleDropdown({ day: null, index: null }); }} />
+                                            )}
                                             {isEditing ? (
                                                 <input
                                                     className="bg-transparent border-b border-[var(--accent)] font-medium w-full"

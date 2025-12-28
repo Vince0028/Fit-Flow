@@ -1,26 +1,18 @@
 
 import React, { useState } from 'react';
 import { TrendingUp, Flame, Target, CalendarDays, CheckCircle2, Circle, Edit3 } from 'lucide-react';
-import { MUSCLE_ICONS } from '../constants';
+import { MUSCLE_ICONS } from '../../constants';
 
 const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
     const [editingExercise, setEditingExercise] = useState(null);
 
-    // Helper to calculate weekly progress
+
     const getWeeklyProgress = () => {
         const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const today = new Date();
         const startOfWeek = new Date(today);
         const day = startOfWeek.getDay(); // 0 (Sun) to 6 (Sat)
 
-        // Calculate Monday of current week
-        // if day is 0 (Sunday), we want to go back 6 days to Monday
-        // if day is 1 (Monday), we stay (diff = 0)
-        // correct formula: date - day + 1 (if sunday, special case)
-
-        // Let's treat Monday as start index 0. 
-        // JS getDay(): Sun=0, Mon=1, ..., Sat=6
-        // shift to Mon=0, ..., Sun=6
         const currentDayIndex = day === 0 ? 6 : day - 1;
         startOfWeek.setDate(today.getDate() - currentDayIndex);
 
@@ -28,7 +20,7 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
             const dateToCheck = new Date(startOfWeek);
             dateToCheck.setDate(startOfWeek.getDate() + index);
 
-            // Find session for this specific date
+
             const session = sessions.find(s => {
                 const sDate = new Date(s.date);
                 return sDate.getDate() === dateToCheck.getDate() &&
@@ -46,12 +38,12 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
 
     const weeklyProgress = getWeeklyProgress();
 
-    // Calculate dynamic stats
+
     const todayCompleted = todayWorkout?.exercises.filter(e => e.completed).length || 0;
     const todayTotal = todayWorkout?.exercises.length || 0;
     const completionPercentage = todayTotal > 0 ? Math.round((todayCompleted / todayTotal) * 100) : 0;
 
-    // Total Logs: Count only sessions that have at least one completed exercise
+
     const totalLogs = sessions.filter(s => s.exercises && s.exercises.some(e => e.completed)).length;
     const weeklyStreak = weeklyProgress.filter(d => d.progress > 0).length;
 

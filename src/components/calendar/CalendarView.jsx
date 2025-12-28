@@ -7,7 +7,7 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete })
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     const getSessionsForDay = (day) => {
-        // Basic logic for current month simulation
+
         return sessions.filter(s => {
             const d = new Date(s.date);
             return d.getDate() === day && d.getMonth() === new Date().getMonth();

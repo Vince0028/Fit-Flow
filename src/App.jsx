@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Zap, Calendar, MessageSquare, AlertTriangle } from 'lucide-react';
-import Navigation from './components/Navigation';
-import Dashboard from './components/Dashboard';
-import CalendarView from './components/CalendarView';
-import WeeklySchedule from './components/WeeklySchedule';
-import AICoach from './components/AICoach';
-import Settings from './components/Settings';
-import Auth from './components/Auth';
+import Navigation from './components/layout/Navigation';
+import Dashboard from './components/dashboard/Dashboard';
+import CalendarView from './components/calendar/CalendarView';
+import WeeklySchedule from './components/schedule/WeeklySchedule';
+import AICoach from './components/coach/AICoach';
+import Settings from './components/settings/Settings';
+import Auth from './components/auth/Auth';
 import { WEEKLY_DEFAULT_PLAN } from './constants';
 import { supabase } from './services/supabaseClient';
 
@@ -28,7 +28,7 @@ const App = () => {
     const [units, setUnits] = useState('kg');
     const [modal, setModal] = useState({ show: false, title: '', message: '', onConfirm: () => { } });
 
-    // Initialize Session
+
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
@@ -43,14 +43,14 @@ const App = () => {
         return () => subscription.unsubscribe();
     }, []);
 
-    // Fetch Data from Supabase
+
     useEffect(() => {
         if (!session?.user?.id) return;
 
         const fetchData = async () => {
             const userId = session.user.id;
 
-            // Fetch Sessions
+
             const { data: sessionsData, error: sessionsError } = await supabase
                 .from('sessions')
                 .select('*')
@@ -62,7 +62,7 @@ const App = () => {
                 console.error('Error fetching sessions:', sessionsError);
             }
 
-            // Fetch Weekly Plan
+
             const { data: planData, error: planError } = await supabase
                 .from('weekly_plan')
                 .select('plan')
@@ -72,7 +72,7 @@ const App = () => {
             if (planData) {
                 setWeeklyPlan(planData.plan);
             } else {
-                // If no plan, insert default
+
                 if (planError && planError.code === 'PGRST116') { // No rows found
                     await supabase.from('weekly_plan').insert({ user_id: userId, plan: WEEKLY_DEFAULT_PLAN });
                 }
@@ -82,7 +82,7 @@ const App = () => {
         fetchData();
     }, [session]);
 
-    // Sync Theme
+
     useEffect(() => {
         if (isDarkMode) {
             document.body.classList.remove('light');
@@ -100,7 +100,7 @@ const App = () => {
     const updateSession = async (updatedSession) => {
         if (!session?.user?.id) return;
 
-        // Optimistic update
+
         setSessions(prev => {
             const exists = prev.find(s => s.id === updatedSession.id);
             if (exists) {
@@ -109,7 +109,7 @@ const App = () => {
             return [...prev, updatedSession];
         });
 
-        // Supabase Update
+
         const sessionPayload = { ...updatedSession, user_id: session.user.id };
         const { error } = await supabase
             .from('sessions')
@@ -117,7 +117,7 @@ const App = () => {
 
         if (error) {
             console.error('Error updating session:', error);
-            // alert(`Failed to save session: ${error.message}`);
+
         }
     };
 
@@ -138,7 +138,7 @@ const App = () => {
         );
     };
 
-    // Wrapper to intercept setWeeklyPlan and sync to DB
+
     const handleSetWeeklyPlan = (newValueOrFn) => {
         // Calculate new state immediately using current scope 'weeklyPlan'
         // This avoids the issue where functional updates "prev" aren't accessible synchronously
@@ -148,7 +148,7 @@ const App = () => {
 
         setWeeklyPlan(newPlan);
 
-        // Sync to Supabase
+
         if (session?.user?.id && newPlan) {
             supabase.from('weekly_plan')
                 .upsert({ user_id: session.user.id, plan: newPlan })
@@ -281,7 +281,7 @@ const App = () => {
         }
     };
 
-    // If no session, show Auth
+
     if (!session) {
         return <Auth />;
     }
@@ -298,7 +298,7 @@ const App = () => {
                 {renderScreen()}
             </main>
 
-            {/* Confirmation Modal */}
+
             {modal.show && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay animate-in fade-in duration-200">
                     <div className="bg-[var(--bg-secondary)] organic-shape organic-border subtle-depth p-8 max-w-sm w-full space-y-6 text-center shadow-2xl">
@@ -330,7 +330,7 @@ const App = () => {
                 </div>
             )}
 
-            {/* Mobile Nav Overlay */}
+
             <div className="md:hidden fixed bottom-6 left-6 right-6 bg-[var(--bg-secondary)]/90 backdrop-blur-lg organic-shape organic-border flex justify-around p-4 z-50 subtle-depth border-t border-[var(--border)]">
                 {[AppScreen.Dashboard, AppScreen.Calendar, AppScreen.Exercises, AppScreen.AICoach].map((screen) => (
                     <button

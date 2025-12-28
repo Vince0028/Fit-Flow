@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../../services/supabaseClient';
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle } from 'lucide-react';
 
 const Auth = () => {

@@ -14,7 +14,7 @@ const Settings = ({ isDarkMode, toggleTheme, confirmAction, onClearData, onReset
                     label: 'Identity',
                     sub: userEmail || 'Athlete account details',
                     icon: <User size={20} />,
-                    action: () => { } // Read-only for now
+                    action: () => { }
                 },
             ]
         },
@@ -35,7 +35,7 @@ const Settings = ({ isDarkMode, toggleTheme, confirmAction, onClearData, onReset
                     sub: `Using ${units === 'kg' ? 'Kilograms (kg)' : 'Pounds (lbs)'}`,
                     icon: <Scale size={20} />,
                     action: toggleUnits,
-                    active: units === 'lbs' // Toggle check state
+                    active: units === 'lbs'
                 },
             ]
         },

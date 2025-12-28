@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, User, Bot, Sparkles, Loader2 } from 'lucide-react';
-import { askCoach } from '../services/geminiService';
+import { askCoach } from '../../services/geminiService';
 
 const AICoach = () => {
     const [messages, setMessages] = useState([
-        { id: '1', role: 'coach', text: "Hey! I'm your AI fitness coach. Ask me anything about workouts, form tips, nutrition advice, or help planning your training. What's on your mind today?" }
+        { id: '1', role: 'coach', text: "Yo! I'm your Gym Bro. Let's get massive. Ask me about your split, form, or macros. What are we crushing today?" }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);

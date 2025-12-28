@@ -3,14 +3,7 @@ import React from 'react';
 import { LayoutDashboard, Calendar, Dumbbell, MessageSquare, Settings as SettingsIcon, Sun, Moon, Zap } from 'lucide-react';
 
 const Navigation = ({ currentScreen, onScreenChange, isDarkMode, toggleTheme }) => {
-    // Using strings or integers for enum values since AppScreen is gone
-    // Assuming 0: Dashboard, 1: Calendar, 2: Exercises, 3: AICoach, 4: Settings
-    // Or better, logic from App.jsx will define these.
-    // Wait, I should probably check what AppScreen was.
-    // In App.tsx:
-    // enum AppScreen { Dashboard, Calendar, Exercises, AICoach, Settings }
-    // So they are 0, 1, 2, 3, 4.
-    // I'll stick to 0, 1, 2, 3, 4 usage.
+
 
     const navItems = [
         { id: 0, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
