@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Pencil, Trash2, Plus, X } from 'lucide-react';
-import { MUSCLE_ICONS } from '../constants';
+import { MUSCLE_ICONS, getMuscleGroup, COMMON_EXERCISES } from '../constants';
 
 const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -38,7 +38,18 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
         setWeeklyPlan(prev => {
             const dayPlan = prev[day];
             const newExs = [...dayPlan.exercises];
-            newExs[index] = { ...newExs[index], [field]: value };
+
+            // Auto-detect muscle group if name changes
+            if (field === 'name') {
+                newExs[index] = {
+                    ...newExs[index],
+                    name: value,
+                    muscleGroup: getMuscleGroup(value)
+                };
+            } else {
+                newExs[index] = { ...newExs[index], [field]: value };
+            }
+
             return { ...prev, [day]: { ...dayPlan, exercises: newExs } };
         });
     };
@@ -98,14 +109,28 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
                                 {plan.exercises.map((ex, i) => (
                                     <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-[var(--bg-primary)]/50 border border-[var(--border)] organic-shape">
                                         <div className="flex items-center gap-3 flex-1">
-                                            <div className="p-2 bg-[var(--bg-secondary)] organic-shape border border-[var(--border)]">
+                                            <div className="relative p-2 bg-[var(--bg-secondary)] organic-shape border border-[var(--border)]">
                                                 {MUSCLE_ICONS[ex.muscleGroup]}
+                                                {isEditing && (
+                                                    <select
+                                                        value={ex.muscleGroup}
+                                                        onChange={(e) => updateExercise(day, i, 'muscleGroup', e.target.value)}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        title="Change target muscle"
+                                                    >
+                                                        {Object.keys(MUSCLE_ICONS).map(m => (
+                                                            <option key={m} value={m}>{m}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </div>
                                             {isEditing ? (
                                                 <input
                                                     className="bg-transparent border-b border-[var(--accent)] font-medium w-full"
                                                     value={ex.name}
                                                     onChange={(e) => updateExercise(day, i, 'name', e.target.value)}
+                                                    list="exercise-list"
+                                                    placeholder="Exercise Name"
                                                 />
                                             ) : (
                                                 <span className="font-medium">{ex.name}</span>
@@ -172,6 +197,12 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
                     );
                 })}
             </div>
+
+            <datalist id="exercise-list">
+                {COMMON_EXERCISES.map((ex, i) => (
+                    <option key={i} value={ex} />
+                ))}
+            </datalist>
         </div>
     );
 };

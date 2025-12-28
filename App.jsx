@@ -114,7 +114,10 @@ const App = () => {
             .from('sessions')
             .upsert(sessionPayload);
 
-        if (error) console.error('Error updating session:', error);
+        if (error) {
+            console.error('Error updating session:', error);
+            // alert(`Failed to save session: ${error.message}`);
+        }
     };
 
     const deleteSession = async (sessionId) => {
@@ -124,7 +127,11 @@ const App = () => {
             async () => {
                 setSessions(prev => prev.filter(s => s.id !== sessionId));
                 if (session?.user?.id) {
-                    await supabase.from('sessions').delete().eq('id', sessionId);
+                    const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
+                    if (error) {
+                        console.error('Delete error:', error);
+                        alert(`Failed to delete: ${error.message}`);
+                    }
                 }
             }
         );
@@ -132,24 +139,24 @@ const App = () => {
 
     // Wrapper to intercept setWeeklyPlan and sync to DB
     const handleSetWeeklyPlan = (newValueOrFn) => {
-        // Resolve functional state update if needed
-        let newPlan;
-        if (typeof newValueOrFn === 'function') {
-            setWeeklyPlan(prev => {
-                newPlan = newValueOrFn(prev);
-                return newPlan;
-            });
-        } else {
-            newPlan = newValueOrFn;
-            setWeeklyPlan(newPlan);
-        }
+        // Calculate new state immediately using current scope 'weeklyPlan'
+        // This avoids the issue where functional updates "prev" aren't accessible synchronously
+        const newPlan = typeof newValueOrFn === 'function'
+            ? newValueOrFn(weeklyPlan)
+            : newValueOrFn;
 
-        // We need to wait for the state update, but here we just use the resolved value
-        // Just wait a tick or fire and forget
+        setWeeklyPlan(newPlan);
+
+        // Sync to Supabase
         if (session?.user?.id && newPlan) {
-            supabase.from('weekly_plan').upsert({ user_id: session.user.id, plan: newPlan }).then(({ error }) => {
-                if (error) console.error("Failed to sync plan:", error);
-            });
+            supabase.from('weekly_plan')
+                .upsert({ user_id: session.user.id, plan: newPlan })
+                .then(({ error }) => {
+                    if (error) {
+                        console.error("Failed to sync plan:", error);
+                        // alert("Failed to save changes to cloud.");
+                    }
+                });
         }
     };
 
@@ -162,7 +169,7 @@ const App = () => {
             const plan = weeklyPlan[dayName];
             if (plan) {
                 currentSession = {
-                    id: `session-${Date.now()}`,
+                    id: crypto.randomUUID(), // Use real UUID for DB compatibility
                     date: new Date().toISOString(),
                     title: plan.title,
                     exercises: plan.exercises.map((ex, i) => ({
@@ -243,18 +250,23 @@ const App = () => {
                             "This will permanently delete your workout history and custom schedule. This action cannot be undone.",
                             async () => {
                                 if (session?.user?.id) {
-                                    await supabase.from('sessions').delete().eq('user_id', session.user.id);
-                                    await supabase.from('weekly_plan').delete().eq('user_id', session.user.id);
+                                    const { error: e1 } = await supabase.from('sessions').delete().eq('user_id', session.user.id);
+                                    const { error: e2 } = await supabase.from('weekly_plan').delete().eq('user_id', session.user.id);
 
-                                    // Reset local state
-                                    setSessions([]);
-                                    setWeeklyPlan(WEEKLY_DEFAULT_PLAN);
+                                    if (e1 || e2) {
+                                        console.error("Reset error:", e1, e2);
+                                        alert("Failed to reset some data. Check console.");
+                                    } else {
+                                        // Reset local state only on success
+                                        setSessions([]);
+                                        setWeeklyPlan(WEEKLY_DEFAULT_PLAN);
 
-                                    // Re-initialize default plan in DB
-                                    await supabase.from('weekly_plan').insert({
-                                        user_id: session.user.id,
-                                        plan: WEEKLY_DEFAULT_PLAN
-                                    });
+                                        // Re-initialize default plan in DB
+                                        await supabase.from('weekly_plan').insert({
+                                            user_id: session.user.id,
+                                            plan: WEEKLY_DEFAULT_PLAN
+                                        });
+                                    }
                                 }
                             }
                         );

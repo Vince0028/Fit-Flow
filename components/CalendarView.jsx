@@ -99,18 +99,20 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete })
                                                 <div className="flex items-center gap-1 text-[9px] font-semibold text-[var(--text-secondary)] uppercase truncate border border-dashed border-[var(--border)] px-2 py-1 rounded-lg">
                                                     <CircleDashed size={8} /> {scheduled.title}
                                                 </div>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const date = new Date();
-                                                        date.setDate(day);
-                                                        onMarkComplete(date, scheduled);
-                                                    }}
-                                                    className="absolute -top-1 -right-1 p-1 bg-[var(--accent)] text-[var(--bg-primary)] rounded-full opacity-0 group-hover/sched:opacity-100 transition-opacity"
-                                                    title="Mark as Done"
-                                                >
-                                                    <Check size={10} />
-                                                </button>
+                                                {isToday && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const date = new Date();
+                                                            date.setDate(day);
+                                                            onMarkComplete(date, scheduled);
+                                                        }}
+                                                        className="absolute -top-1 -right-1 p-1 bg-[var(--accent)] text-[var(--bg-primary)] rounded-full opacity-0 group-hover/sched:opacity-100 transition-opacity"
+                                                        title="Mark as Done"
+                                                    >
+                                                        <Check size={10} />
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </div>

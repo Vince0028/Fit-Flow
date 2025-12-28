@@ -46,11 +46,20 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
 
     const weeklyProgress = getWeeklyProgress();
 
+    // Calculate dynamic stats
+    const todayCompleted = todayWorkout?.exercises.filter(e => e.completed).length || 0;
+    const todayTotal = todayWorkout?.exercises.length || 0;
+    const completionPercentage = todayTotal > 0 ? Math.round((todayCompleted / todayTotal) * 100) : 0;
+
+    // Total Logs: Count only sessions that have at least one completed exercise
+    const totalLogs = sessions.filter(s => s.exercises && s.exercises.some(e => e.completed)).length;
+    const weeklyStreak = weeklyProgress.filter(d => d.progress > 0).length;
+
     const stats = [
-        { label: 'Total Logs', value: sessions.length.toString(), icon: <Target size={20} className="text-emerald-400" />, sub: 'Workouts logged' },
-        { label: 'Weekly Streak', value: sessions.length > 0 ? '1' : '0', icon: <Flame size={20} className="text-orange-400" />, sub: 'Keep it going!' },
+        { label: 'Total Logs', value: totalLogs.toString(), icon: <Target size={20} className="text-emerald-400" />, sub: 'Workouts logged' },
+        { label: 'Weekly Streak', value: `${weeklyStreak} Day${weeklyStreak !== 1 ? 's' : ''}`, icon: <Flame size={20} className="text-orange-400" />, sub: 'Keep it going!' },
         { label: 'Active Exercises', value: todayWorkout?.exercises.length.toString() || '0', icon: <TrendingUp size={20} className="text-blue-400" />, sub: 'Today' },
-        { label: 'Progress', value: '75%', icon: <CalendarDays size={20} className="text-[var(--accent)]" />, sub: 'Consistency' },
+        { label: 'Progress', value: `${completionPercentage}%`, icon: <CalendarDays size={20} className="text-[var(--accent)]" />, sub: 'Consistency' },
     ];
 
     const handleToggleComplete = (exerciseId) => {
