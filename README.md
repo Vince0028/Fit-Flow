@@ -58,8 +58,8 @@ Follow these steps to set up the project locally.
 
 1.  **Clone the repo**
     ```bash
-    git clone https://github.com/yourusername/fit-flow.git
-    cd fit-flow
+    git clone https://github.com/yourusername/track-my-gains.git
+    cd Track-My-Gains
     ```
 
 2.  **Install dependencies**
