@@ -24,7 +24,7 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
     };
 
     const addExercise = (day) => {
-        const newEx = { name: 'New Exercise', sets: 3, reps: 10, muscleGroup: 'Core' };
+        const newEx = { name: 'New Exercise', sets: 3, reps: 10, weight: 0, muscleGroup: 'Core' };
         setWeeklyPlan(prev => ({
             ...prev,
             [day]: {
@@ -97,6 +97,17 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
                                         </div>
 
                                         <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] uppercase">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="number"
+                                                        className="w-10 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-1"
+                                                        value={ex.weight || 0}
+                                                        onChange={(e) => updateExercise(day, i, 'weight', Number(e.target.value))}
+                                                    />
+                                                ) : <span>{ex.weight || 0}</span>}
+                                                <span>kg</span>
+                                            </div>
                                             <div className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] uppercase">
                                                 {isEditing ? (
                                                     <input

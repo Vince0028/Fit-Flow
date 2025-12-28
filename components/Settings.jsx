@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { User, Bell, Scale, Shield, FileText, Trash2, ChevronRight, Moon, Sun } from 'lucide-react';
+import { User, Bell, Scale, Shield, FileText, LogOut, ChevronRight, Moon, Sun } from 'lucide-react';
 
 const Settings = ({ isDarkMode, toggleTheme, confirmAction, onClearData }) => {
     const sections = [
@@ -83,15 +83,11 @@ const Settings = ({ isDarkMode, toggleTheme, confirmAction, onClearData }) => {
 
                 <div className="pt-8">
                     <button
-                        onClick={() => confirmAction(
-                            "Wipe All Progress?",
-                            "This will delete all your recorded workouts and reset your weekly schedule to defaults. This cannot be undone.",
-                            onClearData
-                        )}
+                        onClick={onClearData}
                         className="w-full flex items-center justify-center gap-2 p-6 bg-rose-500/10 border border-rose-500/30 organic-shape text-rose-500 font-bold hover:bg-rose-500 hover:text-white transition-organic shadow-sm"
                     >
-                        <Trash2 size={20} />
-                        Purge All Data
+                        <LogOut size={20} />
+                        Sign Out
                     </button>
                     <div className="text-center space-y-2 mt-8">
                         <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-50">Local Deployment v1.1.0</p>

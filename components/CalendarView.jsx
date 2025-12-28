@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Check, CircleDashed } from 'lucide-react';
 
-const CalendarView = ({ sessions, onDeleteSession }) => {
+const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete }) => {
     const days = Array.from({ length: 31 }, (_, i) => i + 1);
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -12,6 +12,18 @@ const CalendarView = ({ sessions, onDeleteSession }) => {
             const d = new Date(s.date);
             return d.getDate() === day && d.getMonth() === new Date().getMonth();
         });
+    };
+
+    const getScheduledForDay = (day) => {
+        if (!weeklyPlan) return null;
+        const date = new Date();
+        date.setDate(day);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const plan = weeklyPlan[dayName];
+        if (plan && plan.exercises && plan.exercises.length > 0) {
+            return { ...plan, dayName };
+        }
+        return null;
     };
 
     return (
@@ -46,13 +58,16 @@ const CalendarView = ({ sessions, onDeleteSession }) => {
                     <div className="grid grid-cols-7 gap-4">
                         {days.map(day => {
                             const daySessions = getSessionsForDay(day);
+                            const scheduled = getScheduledForDay(day);
                             const isToday = day === new Date().getDate();
+                            const hasSession = daySessions.length > 0;
+
                             return (
                                 <div
                                     key={day}
                                     className={`min-h-[140px] p-3 organic-shape border transition-organic group relative flex flex-col justify-between ${isToday
-                                            ? 'bg-[var(--accent)]/5 border-[var(--accent)] ring-1 ring-[var(--accent)]'
-                                            : 'bg-[var(--bg-primary)] border-[var(--border)] hover:border-[var(--accent)]/50'
+                                        ? 'bg-[var(--accent)]/5 border-[var(--accent)] ring-1 ring-[var(--accent)]'
+                                        : 'bg-[var(--bg-primary)] border-[var(--border)] hover:border-[var(--accent)]/50'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start">
@@ -78,11 +93,31 @@ const CalendarView = ({ sessions, onDeleteSession }) => {
                                                 </button>
                                             </div>
                                         ))}
+
+                                        {!hasSession && scheduled && (
+                                            <div className="relative group/sched opacity-60 hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-1 text-[9px] font-semibold text-[var(--text-secondary)] uppercase truncate border border-dashed border-[var(--border)] px-2 py-1 rounded-lg">
+                                                    <CircleDashed size={8} /> {scheduled.title}
+                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const date = new Date();
+                                                        date.setDate(day);
+                                                        onMarkComplete(date, scheduled);
+                                                    }}
+                                                    className="absolute -top-1 -right-1 p-1 bg-[var(--accent)] text-[var(--bg-primary)] rounded-full opacity-0 group-hover/sched:opacity-100 transition-opacity"
+                                                    title="Mark as Done"
+                                                >
+                                                    <Check size={10} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {isToday && daySessions.length === 0 && (
-                                        <div className="text-[10px] text-[var(--accent)] font-medium italic opacity-60">
-                                            Training pending...
+                                    {isToday && !hasSession && !scheduled && (
+                                        <div className="text-[10px] text-[var(--text-secondary)] font-medium italic opacity-40">
+                                            Rest Day
                                         </div>
                                     )}
                                 </div>

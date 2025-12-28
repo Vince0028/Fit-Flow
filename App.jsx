@@ -7,6 +7,7 @@ import CalendarView from './components/CalendarView';
 import WeeklySchedule from './components/WeeklySchedule';
 import AICoach from './components/AICoach';
 import Settings from './components/Settings';
+import Auth from './components/Auth';
 import { WEEKLY_DEFAULT_PLAN } from './constants';
 import { supabase } from './services/supabaseClient';
 
@@ -19,28 +20,35 @@ const AppScreen = {
 };
 
 const App = () => {
+    const [session, setSession] = useState(null);
     const [currentScreen, setCurrentScreen] = useState(AppScreen.Dashboard);
     const [sessions, setSessions] = useState([]);
     const [weeklyPlan, setWeeklyPlan] = useState(WEEKLY_DEFAULT_PLAN);
     const [isDarkMode, setIsDarkMode] = useState(true);
-    const [userId, setUserId] = useState(null);
     const [modal, setModal] = useState({ show: false, title: '', message: '', onConfirm: () => { } });
 
-    // Initialize User ID
+    // Initialize Session
     useEffect(() => {
-        let storedId = localStorage.getItem('fitflow_user_id');
-        if (!storedId) {
-            storedId = crypto.randomUUID();
-            localStorage.setItem('fitflow_user_id', storedId);
-        }
-        setUserId(storedId);
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+        });
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     // Fetch Data from Supabase
     useEffect(() => {
-        if (!userId) return;
+        if (!session?.user?.id) return;
 
         const fetchData = async () => {
+            const userId = session.user.id;
+
             // Fetch Sessions
             const { data: sessionsData, error: sessionsError } = await supabase
                 .from('sessions')
@@ -51,9 +59,6 @@ const App = () => {
                 setSessions(sessionsData);
             } else if (sessionsError) {
                 console.error('Error fetching sessions:', sessionsError);
-                // Fallback to local storage if DB fails (or table doesn't exist yet)
-                const saved = localStorage.getItem('fitflow_sessions');
-                if (saved) setSessions(JSON.parse(saved));
             }
 
             // Fetch Weekly Plan
@@ -74,7 +79,7 @@ const App = () => {
         };
 
         fetchData();
-    }, [userId]);
+    }, [session]);
 
     // Sync Theme
     useEffect(() => {
@@ -92,6 +97,8 @@ const App = () => {
     const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
     const updateSession = async (updatedSession) => {
+        if (!session?.user?.id) return;
+
         // Optimistic update
         setSessions(prev => {
             const exists = prev.find(s => s.id === updatedSession.id);
@@ -102,14 +109,12 @@ const App = () => {
         });
 
         // Supabase Update
-        if (userId) {
-            const sessionPayload = { ...updatedSession, user_id: userId };
-            const { error } = await supabase
-                .from('sessions')
-                .upsert(sessionPayload);
+        const sessionPayload = { ...updatedSession, user_id: session.user.id };
+        const { error } = await supabase
+            .from('sessions')
+            .upsert(sessionPayload);
 
-            if (error) console.error('Error updating session:', error);
-        }
+        if (error) console.error('Error updating session:', error);
     };
 
     const deleteSession = async (sessionId) => {
@@ -118,7 +123,7 @@ const App = () => {
             "This will permanently remove this recorded session from your history.",
             async () => {
                 setSessions(prev => prev.filter(s => s.id !== sessionId));
-                if (userId) {
+                if (session?.user?.id) {
                     await supabase.from('sessions').delete().eq('id', sessionId);
                 }
             }
@@ -141,8 +146,8 @@ const App = () => {
 
         // We need to wait for the state update, but here we just use the resolved value
         // Just wait a tick or fire and forget
-        if (userId && newPlan) {
-            supabase.from('weekly_plan').upsert({ user_id: userId, plan: newPlan }).then(({ error }) => {
+        if (session?.user?.id && newPlan) {
+            supabase.from('weekly_plan').upsert({ user_id: session.user.id, plan: newPlan }).then(({ error }) => {
                 if (error) console.error("Failed to sync plan:", error);
             });
         }
@@ -150,13 +155,13 @@ const App = () => {
 
     const getTodayWorkout = () => {
         const today = new Date().toDateString();
-        let session = sessions.find(s => new Date(s.date).toDateString() === today);
+        let currentSession = sessions.find(s => new Date(s.date).toDateString() === today);
 
-        if (!session) {
+        if (!currentSession) {
             const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
             const plan = weeklyPlan[dayName];
             if (plan) {
-                session = {
+                currentSession = {
                     id: `session-${Date.now()}`,
                     date: new Date().toISOString(),
                     title: plan.title,
@@ -169,7 +174,7 @@ const App = () => {
                 };
             }
         }
-        return session;
+        return currentSession;
     };
 
     const renderScreen = () => {
@@ -181,7 +186,39 @@ const App = () => {
                     onUpdateSession={updateSession}
                 />;
             case AppScreen.Calendar:
-                return <CalendarView sessions={sessions} onDeleteSession={deleteSession} />;
+                return (
+                    <CalendarView
+                        sessions={sessions}
+                        onDeleteSession={deleteSession}
+                        weeklyPlan={weeklyPlan}
+                        onMarkComplete={async (date, plan) => {
+                            if (!session?.user?.id) return;
+                            const newSession = {
+                                id: crypto.randomUUID(),
+                                user_id: session.user.id,
+                                title: plan.title,
+                                date: date.toISOString(),
+                                exercises: plan.exercises.map((ex, i) => ({
+                                    ...ex,
+                                    id: `ex-${i}-${Date.now()}`,
+                                    weight: ex.weight || 0,
+                                    completed: true
+                                })),
+                                created_at: new Date().toISOString()
+                            };
+
+                            // Optimistic update
+                            setSessions(prev => [...prev, newSession]);
+
+                            // DB Update
+                            const { error } = await supabase.from('sessions').insert(newSession);
+                            if (error) {
+                                console.error('Error marking plan as done:', error);
+                                // Rollback could be added here
+                            }
+                        }}
+                    />
+                );
             case AppScreen.Exercises:
                 return <WeeklySchedule
                     weeklyPlan={weeklyPlan}
@@ -196,18 +233,20 @@ const App = () => {
                     toggleTheme={toggleTheme}
                     confirmAction={confirmAction}
                     onClearData={async () => {
-                        localStorage.clear();
-                        if (userId) {
-                            await supabase.from('sessions').delete().eq('user_id', userId);
-                            await supabase.from('weekly_plan').delete().eq('user_id', userId);
-                        }
-                        window.location.reload();
+                        confirmAction("Sign Out?", "Are you sure you want to sign out?", async () => {
+                            await supabase.auth.signOut();
+                        });
                     }}
                 />;
             default:
                 return <Dashboard sessions={sessions} todayWorkout={getTodayWorkout()} onUpdateSession={updateSession} />;
         }
     };
+
+    // If no session, show Auth
+    if (!session) {
+        return <Auth />;
+    }
 
     return (
         <div className="min-h-screen transition-colors duration-300">
