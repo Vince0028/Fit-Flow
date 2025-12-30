@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, User, Bot, Sparkles, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { askCoach } from '../../services/geminiService';
 
 const AICoach = () => {
@@ -50,7 +51,9 @@ const AICoach = () => {
                                 ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-tl-none organic-shape'
                                 : 'bg-[var(--accent)] text-[var(--bg-primary)] rounded-tr-none organic-shape rotate-[0.5deg] font-medium'
                                 }`}>
-                                <p className="text-sm leading-relaxed">{m.text}</p>
+                                <div className="text-sm leading-relaxed markdown-content">
+                                    <ReactMarkdown>{m.text}</ReactMarkdown>
+                                </div>
                             </div>
                         </div>
                     ))}
