@@ -3,7 +3,7 @@
   <h1>TrackMyGains</h1>
   
   <p>
-    <b>Your Gym Bro & Intelligent Fitness Companion</b>
+    <b>Your Gym Bro & Intelligent Fitness & Nutrition Companion</b>
   </p>
 
   <p>
@@ -19,7 +19,7 @@
 
 ## 🚀 About The Project
 
-**TrackMyGains** is a modern, dark-themed fitness tracker designed for serious athletes. It manages your weekly workout splits, tracks your progress, and provides instant, factual advice through a built-in **AI Gym Bro Coach**.
+**TrackMyGains** is a modern, dark-themed fitness tracker designed for serious athletes. It manages your weekly workout splits, tracks your progress, analyzes your meals via AI, and provides instant, factual advice through a built-in **AI Gym Bro Coach**.
 
 Built with performance and aesthetics in mind, it features an "organic" UI design, real-time data syncing, and a strict no-nonsense AI persona.
 
@@ -31,6 +31,7 @@ I use this for my daily workouts.
 ## ✨ Features
 
 - **🏋️‍♂️ Weekly Planner**: Manage your recurring split (Push/Pull/Legs, etc.) with a drag-and-drop feel.
+- **🍎 Food Scanner**: Scan your meals with AI to instantly track calories and macros.
 - **🤖 AI Gym Bro Coach**: A truthful, factual AI assistant powered by Gemini. No fluff, just gains.
 - **📊 Interactive Dashboard**: Visualizes your weekly streak, active sessions, and progress.
 - **📅 Historical Calendar**: Track every session you've ever crushed.
@@ -43,7 +44,7 @@ I use this for my daily workouts.
 - **Frontend**: React 18, Vite
 - **Styling**: Tailwind CSS, Lucide React (Icons)
 - **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **AI**: Google Gemini API (1.5 models)
+- **AI**: Google Gemini API (Coach) & Groq Vision API (Food Scanner)
 
 ---
 
