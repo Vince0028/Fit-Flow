@@ -1,16 +1,20 @@
 
 import React from 'react';
-import { LayoutDashboard, Calendar, Dumbbell, MessageSquare, Settings as SettingsIcon, Sun, Moon, Zap, LogOut } from 'lucide-react';
+import iconDashboard from '../../assets/icon_dashboard.png';
+import iconCalendar from '../../assets/icon_calendar.png';
+import iconSchedule from '../../assets/icon_schedule.png';
+import iconCoach from '../../assets/icon_coach.png';
+import iconSettings from '../../assets/icon_settings.png';
+import { Sun, Moon, Zap, LogOut } from 'lucide-react';
 
 const Navigation = ({ currentScreen, onScreenChange, isDarkMode, toggleTheme, onSignOut }) => {
 
-
     const navItems = [
-        { id: 0, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-        { id: 1, icon: <Calendar size={20} />, label: 'Calendar' },
-        { id: 2, icon: <Dumbbell size={20} />, label: 'Schedule' },
-        { id: 3, icon: <MessageSquare size={20} />, label: 'Coach' },
-        { id: 4, icon: <SettingsIcon size={20} />, label: 'Settings' },
+        { id: 0, icon: <img src={iconDashboard} alt="Dashboard" className="w-5 h-5 object-contain" />, label: 'Dashboard' },
+        { id: 1, icon: <img src={iconCalendar} alt="Calendar" className="w-5 h-5 object-contain" />, label: 'Calendar' },
+        { id: 2, icon: <img src={iconSchedule} alt="Schedule" className="w-5 h-5 object-contain" />, label: 'Schedule' },
+        { id: 3, icon: <img src={iconCoach} alt="Coach" className="w-5 h-5 object-contain" />, label: 'Coach' },
+        { id: 4, icon: <img src={iconSettings} alt="Settings" className="w-5 h-5 object-contain" />, label: 'Settings' },
     ];
 
     return (
