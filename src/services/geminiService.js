@@ -1,11 +1,17 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction: `You are TrackMyGains, a knowledgeable Gym Bro coach. YOU MUST FOLLOW THESE RULES:
+
+// Priority list of models to try
+const MODELS = [
+    "gemini-2.5-flash",       // Primary
+    "gemini-2.0-flash-exp",   // Secondary (Experimental)
+    "gemini-1.5-flash",       // Fallback (Fast)
+    "gemini-1.5-pro",         // Final Fallback (Quality)
+];
+
+const SYSTEM_INSTRUCTION = `You are TrackMyGains, a knowledgeable Gym Bro coach. YOU MUST FOLLOW THESE RULES:
 1.  **Persona**: Sound like a gym bro (supportive, hype, calls user "bro", "mate", or similar).
 2.  **Truthfulness**: NEVER guess. Base all advice on verified facts. If unsure, say "I can't confirm this."
 3.  **Spartan Style**: Use short, impactful sentences. Active voice. No fluff.
@@ -21,8 +27,11 @@ Wed: Arms
 Fri: Legs/Core
 Sat/Sun: Stretching.
 
-Failsafe: Is this accurate? Yes. Let's lift.`,
-});
+Failsafe: Is this accurate? Yes. Let's lift.`;
+
+// Rate Limiting Logic
+const RATE_LIMIT_MS = 5000; // 5 seconds between requests
+let lastRequestTime = 0;
 
 export async function askCoach(prompt) {
     if (!apiKey) {
@@ -30,17 +39,40 @@ export async function askCoach(prompt) {
         return "CONFIGURATION ERROR: API Key is missing. Please add VITE_GEMINI_API_KEY to your Vercel Environment Variables.";
     }
 
-    try {
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.7,
-            },
-        });
-        const response = await result.response;
-        return response.text();
-    } catch (error) {
-        console.error("Coach failed to respond:", error);
-        return `Connection Error: ${error.message || "Unknown error"}. Please check your network or API quota.`;
+    const now = Date.now();
+    if (now - lastRequestTime < RATE_LIMIT_MS) {
+        const remaining = Math.ceil((RATE_LIMIT_MS - (now - lastRequestTime)) / 1000);
+        return `Whoa, slow down bro! I need ${remaining} more seconds to catch my breath.`;
+    }
+    lastRequestTime = now;
+
+    // Try models in order
+    for (const modelName of MODELS) {
+        try {
+            console.log(`Attempting to generate with model: ${modelName}`);
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction: SYSTEM_INSTRUCTION,
+            });
+
+            const result = await model.generateContent({
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.7,
+                },
+            });
+            const response = await result.response;
+            return response.text();
+
+        } catch (error) {
+            console.warn(`Model ${modelName} failed:`, error.message);
+            // If it's the last model, throw the error to be caught by the outer block
+            if (modelName === MODELS[MODELS.length - 1]) {
+                console.error("All models failed.");
+                return `Connection Error: All AI models are currently busy or down. Please try again later. (${error.message})`;
+            }
+            // Otherwise loop to next model
+            continue;
+        }
     }
 }
