@@ -132,7 +132,6 @@ const Settings = ({ isDarkMode, toggleTheme, confirmAction, onSignOut, onResetDa
                     </button>
 
                     <div className="text-center space-y-2 mt-8">
-                        <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-50">Local Deployment v1.1.0</p>
                         <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed px-4">
                             TrackMyGains now syncs with the secure backend.
                         </p>

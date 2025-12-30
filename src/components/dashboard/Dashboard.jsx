@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { TrendingUp, Flame, Target, CalendarDays, CheckCircle2, Circle, Edit3 } from 'lucide-react';
 import { MUSCLE_ICONS } from '../../constants';
+import { convertWeight, toKg } from '../common/UnitConverter';
 
-const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
+const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units }) => {
     const [editingExercise, setEditingExercise] = useState(null);
 
 
@@ -67,7 +68,10 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
 
     const handleWeightChange = (exerciseId, val) => {
         if (!todayWorkout) return;
-        const validWeight = Math.max(0, val);
+
+        // Convert input value to KG for storage if unit is lbs
+        const valueInKg = toKg(val, units);
+        const validWeight = Math.max(0, valueInKg);
         const updated = {
             ...todayWorkout,
             exercises: todayWorkout.exercises.map(ex =>
@@ -135,16 +139,16 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession }) => {
                                                                 type="number"
                                                                 autoFocus
                                                                 className="w-16 bg-[var(--bg-secondary)] border border-[var(--accent)] rounded px-1 text-center"
-                                                                value={ex.weight}
+                                                                value={convertWeight(ex.weight, units).value}
                                                                 onBlur={() => setEditingExercise(null)}
-                                                                onChange={(e) => handleWeightChange(ex.id, Number(e.target.value))}
+                                                                onChange={(e) => handleWeightChange(ex.id, e.target.value)}
                                                             />
                                                         ) : (
                                                             <span
                                                                 onClick={() => setEditingExercise(ex.id)}
                                                                 className="cursor-pointer hover:text-[var(--accent)] underline decoration-dotted"
                                                             >
-                                                                {ex.weight || 0} kg
+                                                                {convertWeight(ex.weight, units).value} {units}
                                                             </span>
                                                         )}
                                                     </div>

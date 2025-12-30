@@ -25,7 +25,7 @@ const App = () => {
     const [sessions, setSessions] = useState([]);
     const [weeklyPlan, setWeeklyPlan] = useState(WEEKLY_DEFAULT_PLAN);
     const [isDarkMode, setIsDarkMode] = useState(true);
-    const [units, setUnits] = useState('kg');
+    const [units, setUnits] = useState(() => localStorage.getItem('track_my_gains_units') || 'kg');
     const [modal, setModal] = useState({ show: false, title: '', message: '', onConfirm: () => { } });
 
 
@@ -332,6 +332,7 @@ const App = () => {
                     sessions={sessions}
                     todayWorkout={getTodayWorkout()}
                     onUpdateSession={updateSession}
+                    units={units}
                 />;
             case AppScreen.Calendar:
                 return (
@@ -365,6 +366,7 @@ const App = () => {
                                 // Rollback could be added here
                             }
                         }}
+                        units={units}
                     />
                 );
             case AppScreen.Exercises:
@@ -372,6 +374,7 @@ const App = () => {
                     weeklyPlan={weeklyPlan}
                     setWeeklyPlan={handleSetWeeklyPlan}
                     confirmAction={confirmAction}
+                    units={units}
                 />;
             case AppScreen.AICoach:
                 return <AICoach />;
@@ -382,7 +385,13 @@ const App = () => {
                     confirmAction={confirmAction}
                     userEmail={session?.user?.email}
                     units={units}
-                    toggleUnits={() => setUnits(u => u === 'kg' ? 'lbs' : 'kg')}
+                    toggleUnits={() => {
+                        setUnits(prev => {
+                            const newUnit = prev === 'kg' ? 'lbs' : 'kg';
+                            localStorage.setItem('track_my_gains_units', newUnit);
+                            return newUnit;
+                        });
+                    }}
                     onSignOut={handleSignOut}
                     onResetData={async () => {
                         confirmAction(
@@ -413,7 +422,7 @@ const App = () => {
                     }}
                 />;
             default:
-                return <Dashboard sessions={sessions} todayWorkout={getTodayWorkout()} onUpdateSession={updateSession} />;
+                return <Dashboard sessions={sessions} todayWorkout={getTodayWorkout()} onUpdateSession={updateSession} units={units} />;
         }
     };
 

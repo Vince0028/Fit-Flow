@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Pencil, Trash2, Plus, X } from 'lucide-react';
 import { MUSCLE_ICONS, getMuscleGroup, COMMON_EXERCISES } from '../../constants';
+import { convertWeight, toKg } from '../common/UnitConverter';
 
-const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
+const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const [editingDay, setEditingDay] = useState(null);
     const [activeMuscleDropdown, setActiveMuscleDropdown] = useState({ day: null, index: null });
@@ -54,8 +55,15 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
                     muscleGroup: getMuscleGroup(value)
                 };
             } else if (['weight', 'sets', 'reps'].includes(field)) {
-                // Ensure no negative numbers
-                const validValue = Math.max(0, Number(value));
+                // Ensure no negative numbers logic
+                let valueToStore = Number(value);
+
+                if (field === 'weight') {
+                    // Convert back to kg if needed
+                    valueToStore = toKg(value, units);
+                }
+
+                const validValue = Math.max(0, valueToStore);
                 newExs[index] = { ...newExs[index], [field]: validValue };
             } else {
                 newExs[index] = { ...newExs[index], [field]: value };
@@ -173,12 +181,12 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction }) => {
                                                 {isEditing ? (
                                                     <input
                                                         type="number"
-                                                        className="w-10 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-1"
-                                                        value={ex.weight || 0}
-                                                        onChange={(e) => updateExercise(day, i, 'weight', Number(e.target.value))}
+                                                        className="w-16 bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-1"
+                                                        value={convertWeight(ex.weight || 0, units).value}
+                                                        onChange={(e) => updateExercise(day, i, 'weight', e.target.value)}
                                                     />
-                                                ) : <span>{ex.weight || 0}</span>}
-                                                <span>kg</span>
+                                                ) : <span>{convertWeight(ex.weight || 0, units).value}</span>}
+                                                <span>{units}</span>
                                             </div>
                                             <div className="flex items-center gap-1 text-xs font-bold text-[var(--text-secondary)] uppercase">
                                                 {isEditing ? (
