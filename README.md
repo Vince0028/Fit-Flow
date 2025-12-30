@@ -98,3 +98,4 @@ Contributions are clear. Fork it, branch it, push it.
 <div align="center">
   <b>TrackMyGains - Est. 2024</b>
 </div>
+ 

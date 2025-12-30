@@ -25,6 +25,11 @@ Failsafe: Is this accurate? Yes. Let's lift.`,
 });
 
 export async function askCoach(prompt) {
+    if (!apiKey) {
+        console.error("VITE_GEMINI_API_KEY is missing!");
+        return "CONFIGURATION ERROR: API Key is missing. Please add VITE_GEMINI_API_KEY to your Vercel Environment Variables.";
+    }
+
     try {
         const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -36,6 +41,6 @@ export async function askCoach(prompt) {
         return response.text();
     } catch (error) {
         console.error("Coach failed to respond:", error);
-        return "I'm having trouble connecting to the network. Keep pushing your limits, and I'll be back online soon!";
+        return `Connection Error: ${error.message || "Unknown error"}. Please check your network or API quota.`;
     }
 }
