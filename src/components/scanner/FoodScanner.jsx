@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Loader2, ScanLine, X, Check, RefreshCcw } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Upload, Loader2, ScanLine, X, ChevronRight, PieChart, Flame, Beef, Wheat, Droplet } from 'lucide-react';
 import { analyzeFoodImage } from '../../services/groqService';
 
 const FoodScanner = () => {
@@ -7,88 +7,7 @@ const FoodScanner = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
-    const [isCameraActive, setIsCameraActive] = useState(false);
-
     const fileInputRef = useRef(null);
-    const videoRef = useRef(null);
-    const canvasRef = useRef(null);
-    const streamRef = useRef(null);
-
-    useEffect(() => {
-        return () => {
-            stopCamera();
-        };
-    }, []);
-
-    const startCamera = async () => {
-        try {
-            console.log("Requesting camera access...");
-            setError('');
-
-            // Explicitly requesting video with no constraints first to ensure access
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true
-            });
-
-            console.log("Camera access granted. Stream:", stream);
-            console.log("Video tracks:", stream.getVideoTracks());
-
-            streamRef.current = stream;
-
-            if (videoRef.current) {
-                console.log("Setting video srcObject...");
-                videoRef.current.srcObject = stream;
-
-                // Add event listeners for debug
-                videoRef.current.onloadeddata = () => console.log("Video data loaded");
-                videoRef.current.onplaying = () => console.log("Video is playing");
-                videoRef.current.onerror = (e) => console.error("Video error:", e);
-
-                videoRef.current.onloadedmetadata = async () => {
-                    console.log("Video metadata loaded. Attempting to play...");
-                    try {
-                        await videoRef.current.play();
-                        console.log("Play successful");
-                    } catch (e) {
-                        console.error("Play error:", e);
-                        setError("Camera started but failed to play: " + e.message);
-                    }
-                };
-            }
-            setIsCameraActive(true);
-            setImage(null);
-            setResult(null);
-        } catch (err) {
-            console.error("Camera error:", err);
-            setError(`Unable to access camera: ${err.name} - ${err.message}`);
-        }
-    };
-
-    const stopCamera = () => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
-        }
-        setIsCameraActive(false);
-    };
-
-    const capturePhoto = () => {
-        if (videoRef.current && canvasRef.current) {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-
-            // Match canvas size to video dimensions
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const dataUrl = canvas.toDataURL('image/jpeg');
-            setImage(dataUrl);
-            stopCamera();
-        }
-    };
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -99,7 +18,6 @@ const FoodScanner = () => {
             setImage(reader.result);
             setResult(null);
             setError('');
-            setIsCameraActive(false); // Ensure camera is off if uploading
         };
         reader.readAsDataURL(file);
     };
@@ -113,8 +31,29 @@ const FoodScanner = () => {
 
         try {
             const data = await analyzeFoodImage(image);
-            setResult(data);
+
+            // Normalize data
+            let foodsArray = [];
+            if (data.foods && Array.isArray(data.foods)) {
+                foodsArray = data.foods;
+            } else if (data.food_name) {
+                foodsArray = [data];
+            } else {
+                throw new Error("Invalid response format from AI.");
+            }
+
+            // Calculate totals
+            const totals = foodsArray.reduce((acc, item) => ({
+                calories: acc.calories + (parseInt(item.calories) || 0),
+                protein: acc.protein + (parseInt(item.protein) || 0),
+                carbs: acc.carbs + (parseInt(item.carbs) || 0),
+                fats: acc.fats + (parseInt(item.fats) || 0),
+            }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+            setResult({ foods: foodsArray, totals });
+
         } catch (err) {
+            console.error("Analysis failed:", err);
             setError(err.message || "Failed to analyze image. Please try again.");
         } finally {
             setLoading(false);
@@ -125,170 +64,198 @@ const FoodScanner = () => {
         setImage(null);
         setResult(null);
         setError('');
-        stopCamera();
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
     };
 
     return (
-        <div className="h-full flex flex-col items-center justify-center p-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center space-y-2">
-                <h2 className="text-3xl font-bold text-[var(--text-primary)]">Food Scanner</h2>
-                <p className="text-[var(--text-secondary)]">Snap a photo to track your gains.</p>
+        <div className="h-full w-full flex flex-col items-center justify-start p-6 animate-in fade-in zoom-in-95 duration-500 overflow-y-auto pb-24">
+
+            {/* Header */}
+            <div className="text-center space-y-2 mb-8">
+                <h2 className="text-4xl font-black bg-gradient-to-r from-[var(--text-primary)] to-[var(--text-secondary)] bg-clip-text text-transparent">Food Scanner</h2>
+                <p className="text-[var(--text-secondary)] font-medium">AI-Powered Nutrition Analysis</p>
             </div>
 
-            <div className="w-full max-w-md bg-[var(--bg-secondary)] organic-shape organic-border p-6 shadow-2xl relative">
+            <div className="w-full max-w-2xl flex flex-col gap-6">
 
-                {/* Image Preview / Camera Area */}
-                <div className="aspect-square w-full bg-[var(--bg-primary)] rounded-2xl border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden relative mb-6 group">
+                {/* Main Card: Image & Upload */}
+                <div className="bg-[var(--bg-secondary)]/50 backdrop-blur-xl border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl relative group transition-all duration-500 hover:shadow-[var(--accent)]/10">
 
-                    {isCameraActive ? (
-                        <div className="relative w-full h-full bg-black">
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted // Crucial for autoplay permissions on many browsers
-                                className="w-full h-full object-cover"
-                            />
-                            <button
-                                onClick={stopCamera}
-                                className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors z-10"
-                            >
-                                <X size={20} />
-                            </button>
-                            <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                    {/* Image Area */}
+                    <div className={`aspect-video w-full bg-black/20 flex items-center justify-center relative overflow-hidden transition-all duration-500 ${image ? 'h-64' : 'h-80'}`}>
+                        {image ? (
+                            <>
+                                <img src={image} alt="Food Preview" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                                 <button
-                                    onClick={capturePhoto}
-                                    className="p-4 bg-white rounded-full shadow-lg hover:scale-105 active:scale-95 transition-transform border-4 border-[var(--accent)]"
+                                    onClick={resetScanner}
+                                    className="absolute top-4 right-4 p-2 bg-black/40 backdrop-blur-md text-white rounded-full hover:bg-rose-500 transition-all active:scale-95 z-10 border border-white/10"
                                 >
-                                    <div className="w-4 h-4 bg-[var(--accent)] rounded-full" />
+                                    <X size={20} />
                                 </button>
-                            </div>
-                        </div>
-                    ) : image ? (
-                        <>
-                            <img src={image} alt="Food Preview" className="w-full h-full object-cover" />
-                            <button
-                                onClick={resetScanner}
-                                className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors"
+                            </>
+                        ) : (
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-white/5 transition-colors group/upload"
                             >
-                                <X size={20} />
-                            </button>
-                            {!result && !loading && (
-                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                    <ScanLine size={48} className="text-white/80" />
+                                <div className="w-20 h-20 bg-[var(--accent)]/10 border-2 border-[var(--accent)]/20 text-[var(--accent)] rounded-full flex items-center justify-center mb-6 group-hover/upload:scale-110 transition-transform duration-300 shadow-[0_0_30px_-5px_var(--accent)]">
+                                    <Upload size={32} />
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="text-center space-y-6 p-4 w-full">
-                            <div className="flex justify-center gap-4">
-                                <button
-                                    onClick={startCamera}
-                                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all group"
-                                >
-                                    <div className="w-12 h-12 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-                                        <Camera size={24} />
-                                    </div>
-                                    <span className="text-sm font-bold">Use Camera</span>
-                                </button>
-
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all group"
-                                >
-                                    <div className="w-12 h-12 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-                                        <Upload size={24} />
-                                    </div>
-                                    <span className="text-sm font-bold">Upload File</span>
-                                </button>
+                                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">Upload Meal Photo</h3>
+                                <p className="text-[var(--text-secondary)] text-sm">Tap to browse your gallery</p>
                             </div>
-                            <p className="text-xs text-[var(--text-secondary)]">Supported formats: JPG, PNG</p>
+                        )}
+
+                        {loading && (
+                            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center text-white space-y-4 z-20">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-[var(--accent)] blur-xl opacity-20 animate-pulse"></div>
+                                    <Loader2 size={56} className="animate-spin text-[var(--accent)] relative z-10" />
+                                </div>
+                                <p className="font-bold tracking-[0.2em] text-sm animate-pulse text-[var(--accent)]">ANALYZING...</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                    />
+
+                    {/* Result Summary */}
+                    {result && (
+                        <div className="p-8 animate-in slide-in-from-bottom-4 duration-500">
+                            {/* Total Macros Row */}
+                            <div className="flex items-center justify-between gap-4 mb-8">
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        <Flame size={12} className="text-orange-500" /> Calories
+                                    </span>
+                                    <span className="text-4xl font-black text-[var(--text-primary)] tracking-tight">{result.totals.calories}</span>
+                                </div>
+
+                                <div className="flex-1 flex gap-4 justify-end">
+                                    <MacroRing label="Protein" value={result.totals.protein} color="text-emerald-400" icon={<Beef size={14} />} />
+                                    <MacroRing label="Carbs" value={result.totals.carbs} color="text-amber-400" icon={<Wheat size={14} />} />
+                                    <MacroRing label="Fats" value={result.totals.fats} color="text-rose-400" icon={<Droplet size={14} />} />
+                                </div>
+                            </div>
+
+                            {/* Macro Balance Bar */}
+                            <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden flex mb-2">
+                                <div style={{ width: getRatio(result.totals, 'protein') }} className="h-full bg-emerald-500/80" />
+                                <div style={{ width: getRatio(result.totals, 'carbs') }} className="h-full bg-amber-500/80" />
+                                <div style={{ width: getRatio(result.totals, 'fats') }} className="h-full bg-rose-500/80" />
+                            </div>
+                            <div className="flex justify-between text-[10px] text-[var(--text-secondary)] font-medium px-1">
+                                <span className="text-emerald-400">Protein</span>
+                                <span className="text-amber-400">Carbs</span>
+                                <span className="text-rose-400">Fats</span>
+                            </div>
                         </div>
                     )}
 
-                    {loading && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white space-y-4 z-20">
-                            <Loader2 size={48} className="animate-spin text-[var(--accent)]" />
-                            <p className="font-bold tracking-widest animate-pulse">ANALYZING...</p>
+                    {/* Action Button (Analyze) */}
+                    {image && !result && !loading && (
+                        <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-primary)]/30">
+                            <button
+                                onClick={handleAnalyze}
+                                className="w-full py-4 bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-[var(--bg-primary)] font-black text-lg rounded-2xl shadow-lg shadow-[var(--accent)]/20 hover:shadow-[var(--accent)]/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                            >
+                                <ScanLine className="group-hover:rotate-180 transition-transform duration-500" />
+                                Analyze Nutrition
+                            </button>
                         </div>
                     )}
                 </div>
 
-                <canvas ref={canvasRef} className="hidden" />
-
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                />
-
-                {/* Actions & Results */}
+                {/* Error Banner */}
                 {error && (
-                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm text-center mb-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-500 font-medium text-center animate-in shake">
                         {error}
                     </div>
                 )}
 
-                {result ? (
-                    <div className="space-y-4 animate-in zoom-in-95 duration-300">
-                        <div className="p-4 bg-[var(--bg-primary)] rounded-xl border border-[var(--border)] text-center space-y-2">
-                            <h3 className="text-2xl font-bold text-[var(--accent)]">{result.food_name}</h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div className="p-2 bg-[var(--bg-secondary)] rounded-lg">
-                                    <span className="block text-[var(--text-secondary)] text-xs uppercase">Calories</span>
-                                    <span className="font-bold text-lg">{result.calories}</span>
-                                </div>
-                                <div className="p-2 bg-[var(--bg-secondary)] rounded-lg">
-                                    <span className="block text-[var(--text-secondary)] text-xs uppercase">Serving</span>
-                                    <span className="font-bold">{result.serving_size}</span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 text-xs pt-2">
-                                <div className="text-center">
-                                    <span className="block text-emerald-400 font-bold">{result.protein}</span>
-                                    <span className="text-[var(--text-secondary)]">Protein</span>
-                                </div>
-                                <div className="text-center">
-                                    <span className="block text-amber-400 font-bold">{result.carbs}</span>
-                                    <span className="text-[var(--text-secondary)]">Carbs</span>
-                                </div>
-                                <div className="text-center">
-                                    <span className="block text-rose-400 font-bold">{result.fats}</span>
-                                    <span className="text-[var(--text-secondary)]">Fats</span>
-                                </div>
-                            </div>
+                {/* Detected Items List */}
+                {result && (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-2">
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+                            <h3 className="text-lg font-bold text-[var(--text-primary)]">Detected Items</h3>
+                            <span className="px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)] text-xs text-[var(--text-secondary)] font-mono">
+                                {result.foods.length}
+                            </span>
                         </div>
+
+                        <div className="grid gap-3">
+                            {result.foods.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className="flex items-center justify-between p-4 bg-[var(--bg-secondary)]/30 backdrop-blur-md rounded-2xl border border-[var(--border)] hover:border-[var(--accent)]/30 hover:bg-[var(--bg-secondary)]/50 transition-all duration-300 group animate-in slide-in-from-bottom-2 fade-in"
+                                    style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] font-bold shadow-sm group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/30 transition-colors">
+                                            {index + 1}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-[var(--text-primary)] text-lg leading-tight group-hover:text-[var(--accent)] transition-colors">{item.name}</p>
+                                            <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">{item.serving_size}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="font-black text-[var(--text-primary)]">{item.calories} <span className="text-[10px] text-[var(--text-secondary)] font-medium uppercase">cal</span></span>
+                                        <div className="flex items-center gap-2 text-xs font-bold font-mono">
+                                            <span className="text-emerald-400">{parseInt(item.protein)}p</span>
+                                            <span className="w-0.5 h-3 bg-[var(--border)]"></span>
+                                            <span className="text-amber-400">{parseInt(item.carbs)}c</span>
+                                            <span className="w-0.5 h-3 bg-[var(--border)]"></span>
+                                            <span className="text-rose-400">{parseInt(item.fats)}f</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         <button
                             onClick={resetScanner}
-                            className="w-full py-3 bg-[var(--accent)] text-white font-bold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                            className="w-full py-4 mt-4 text-[var(--text-secondary)] font-bold hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-2 hover:bg-[var(--bg-secondary)]/30 rounded-2xl"
                         >
                             <ScanLine size={18} />
-                            Scan Another
+                            Scan Another Meal
                         </button>
                     </div>
-                ) : (
-                    !isCameraActive && image && (
-                        <button
-                            onClick={handleAnalyze}
-                            disabled={loading}
-                            className={`w-full py-4 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2
-                                ${loading
-                                    ? 'bg-slate-700/50 cursor-not-allowed text-slate-500'
-                                    : 'bg-[var(--accent)] hover:brightness-110 hover:shadow-[var(--accent)]/20 active:scale-95'
-                                }`}
-                        >
-                            {loading ? 'Processing...' : 'Analyze Meal'}
-                        </button>
-                    )
                 )}
             </div>
         </div>
     );
+};
+
+// Helper Component for Macro Circles
+const MacroRing = ({ label, value, color, icon }) => (
+    <div className="flex flex-col items-center gap-1 min-w-[60px]">
+        <div className={`text-xl font-black ${color}`}>{parseInt(value)}<span className="text-xs text-[var(--text-secondary)] font-bold">g</span></div>
+        <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+            {icon} {label}
+        </div>
+    </div>
+);
+
+// Helper for bar widths
+const getRatio = (totals, key) => {
+    const p = parseInt(totals.protein) || 0;
+    const c = parseInt(totals.carbs) || 0;
+    const f = parseInt(totals.fats) || 0;
+    const total = p + c + f;
+    if (total === 0) return '33%';
+    return `${((parseInt(totals[key]) || 0) / total) * 100}%`;
 };
 
 export default FoodScanner;

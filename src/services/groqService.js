@@ -37,7 +37,7 @@ export const analyzeFoodImage = async (base64Image) => {
                             content: [
                                 {
                                     type: "text",
-                                    text: "Analyze this food image. Identify the food item and estimate its calories and macronutrients (protein, carbs, fats) for a standard serving size. Return ONLY a valid JSON object with the following structure: { \"food_name\": \"Name\", \"calories\": 0, \"protein\": \"0g\", \"carbs\": \"0g\", \"fats\": \"0g\", \"serving_size\": \"description\" }. Do not include any markdown formatting or extra text."
+                                    text: "Analyze this food image. Identify **all** distinct food items visible. Estimate calories and macronutrients for each item based on a standard serving size. \n\nReturn ONLY a valid JSON object with the following structure:\n{\n  \"foods\": [\n    {\n      \"name\": \"Item Name\",\n      \"calories\": 0,\n      \"protein\": \"0g\",\n      \"carbs\": \"0g\",\n      \"fats\": \"0g\",\n      \"serving_size\": \"e.g. 1 cup or 100g\"\n    }\n  ]\n}\n\nDo not include any markdown formatting or extra text. Only the JSON."
                                 },
                                 {
                                     type: "image_url",
