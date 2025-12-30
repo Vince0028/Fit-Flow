@@ -10,6 +10,11 @@ import Settings from './components/settings/Settings';
 import Auth from './components/auth/Auth';
 import { WEEKLY_DEFAULT_PLAN } from './constants';
 import { supabase } from './services/supabaseClient';
+import iconDashboard from './assets/icon_dashboard.png';
+import iconCalendar from './assets/icon_calendar.png';
+import iconSchedule from './assets/icon_schedule.png';
+import iconCoach from './assets/icon_coach.png';
+import iconSettings from './assets/icon_settings.png';
 
 const AppScreen = {
     Dashboard: 0,
@@ -484,11 +489,11 @@ const App = () => {
                         onClick={() => setCurrentScreen(screen)}
                         className={`transition-organic p-3 rounded-xl ${currentScreen === screen ? 'bg-[var(--accent)] text-[var(--bg-primary)]' : 'text-[var(--text-secondary)]'}`}
                     >
-                        {screen === AppScreen.Dashboard && <Zap size={24} />}
-                        {screen === AppScreen.Calendar && <Calendar size={24} />}
-                        {screen === AppScreen.Exercises && <Zap size={24} className="rotate-90" />}
-                        {screen === AppScreen.AICoach && <MessageSquare size={24} />}
-                        {screen === AppScreen.Settings && <SettingsIcon size={24} />}
+                        {screen === AppScreen.Dashboard && <img src={iconDashboard} alt="Dashboard" className="w-8 h-8 object-contain" />}
+                        {screen === AppScreen.Calendar && <img src={iconCalendar} alt="Calendar" className="w-8 h-8 object-contain" />}
+                        {screen === AppScreen.Exercises && <img src={iconSchedule} alt="Schedule" className="w-8 h-8 object-contain" />}
+                        {screen === AppScreen.AICoach && <img src={iconCoach} alt="Coach" className="w-8 h-8 object-contain" />}
+                        {screen === AppScreen.Settings && <img src={iconSettings} alt="Settings" className="w-8 h-8 object-contain" />}
                     </button>
                 ))}
             </div>
