@@ -4,7 +4,7 @@ import { TrendingUp, Flame, Target, CalendarDays, CheckCircle2, Circle, Edit3 } 
 import { MUSCLE_ICONS } from '../../constants';
 import { convertWeight, toKg } from '../common/UnitConverter';
 
-const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units }) => {
+const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units, onNavigateToHistory }) => {
     const [editingExercise, setEditingExercise] = useState(null);
 
 
@@ -195,6 +195,12 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units }) => {
                                 "Small efforts repeated daily lead to great achievements."
                             </p>
                         </div>
+                        <button
+                            onClick={onNavigateToHistory}
+                            className="w-full mt-6 py-3 bg-[var(--accent)] text-[var(--bg-primary)] font-bold rounded-lg transition-organic hover:brightness-110 active:scale-95"
+                        >
+                            View Full History
+                        </button>
                     </div>
                 </div>
             </div>

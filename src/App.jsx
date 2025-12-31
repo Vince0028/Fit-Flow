@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Calendar, MessageSquare, AlertTriangle, Settings as SettingsIcon, ScanLine } from 'lucide-react';
+import { Zap, Calendar, MessageSquare, AlertTriangle, Settings as SettingsIcon, ScanLine, TrendingUp } from 'lucide-react';
 import Navigation from './components/layout/Navigation';
+import MobileMenu from './components/layout/MobileMenu';
 import Dashboard from './components/dashboard/Dashboard';
 import CalendarView from './components/calendar/CalendarView';
 import WeeklySchedule from './components/schedule/WeeklySchedule';
 import AICoach from './components/coach/AICoach';
 import FoodScanner from './components/scanner/FoodScanner';
+import HistoryPage from './components/history/HistoryPage';
 import Settings from './components/settings/Settings';
 import Auth from './components/auth/Auth';
 import { WEEKLY_DEFAULT_PLAN } from './constants';
@@ -23,6 +25,7 @@ const AppScreen = {
     Calendar: 1,
     Exercises: 2,
     AICoach: 3,
+    History: 6,
     Scanner: 5,
     Settings: 4
 };
@@ -34,6 +37,7 @@ const App = () => {
     const [weeklyPlan, setWeeklyPlan] = useState(WEEKLY_DEFAULT_PLAN);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [units, setUnits] = useState(() => localStorage.getItem('track_my_gains_units') || 'kg');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [modal, setModal] = useState({ show: false, title: '', message: '', onConfirm: () => { } });
 
 
@@ -138,26 +142,31 @@ const App = () => {
                 const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
                 handleSetWeeklyPlan(prevPlan => {
-                    const dayPlan = prevPlan[dayName];
-                    if (!dayPlan) return prevPlan;
+                    const newPlan = { ...prevPlan };
 
-                    const updatedExercises = dayPlan.exercises.map(planEx => {
-                        // Match by name as IDs might differ
-                        const sessionEx = updatedSession.exercises.find(sEx => sEx.name === planEx.name);
+                    // Iterate through all days in the plan to sync weights
+                    Object.keys(newPlan).forEach(dayKey => {
+                        const dayPlan = newPlan[dayKey];
+                        if (dayPlan && dayPlan.exercises) {
+                            const updatedExercises = dayPlan.exercises.map(planEx => {
+                                // Find matching exercise in the current session
+                                const sessionEx = updatedSession.exercises.find(sEx => sEx.name === planEx.name);
 
-                        if (sessionEx && sessionEx.weight !== undefined) {
-                            return { ...planEx, weight: sessionEx.weight };
+                                // If match found, update the weight
+                                if (sessionEx && sessionEx.weight !== undefined) {
+                                    return { ...planEx, weight: sessionEx.weight };
+                                }
+                                return planEx;
+                            });
+
+                            newPlan[dayKey] = {
+                                ...dayPlan,
+                                exercises: updatedExercises
+                            };
                         }
-                        return planEx;
                     });
 
-                    return {
-                        ...prevPlan,
-                        [dayName]: {
-                            ...dayPlan,
-                            exercises: updatedExercises
-                        }
-                    };
+                    return newPlan;
                 }, false); // Pass false to prevent loop back to session
             }
         }
@@ -341,6 +350,7 @@ const App = () => {
                     todayWorkout={getTodayWorkout()}
                     onUpdateSession={updateSession}
                     units={units}
+                    onNavigateToHistory={() => setCurrentScreen(AppScreen.History)}
                 />;
             case AppScreen.Calendar:
                 return (
@@ -386,6 +396,8 @@ const App = () => {
                 />;
             case AppScreen.AICoach:
                 return <AICoach />;
+            case AppScreen.History:
+                return <HistoryPage sessions={sessions} />;
             case AppScreen.Scanner:
                 return <FoodScanner />;
             case AppScreen.Settings:
@@ -449,11 +461,22 @@ const App = () => {
                 isDarkMode={isDarkMode}
                 toggleTheme={toggleTheme}
                 onSignOut={handleSignOut}
+                isMobileMenuOpen={isMobileMenuOpen}
+                onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             />
-            <main className="max-w-7xl mx-auto pb-24 md:pb-8">
-                {renderScreen()}
-            </main>
-
+            <MobileMenu
+                currentScreen={currentScreen}
+                onScreenChange={(screen) => {
+                    setCurrentScreen(screen);
+                    setIsMobileMenuOpen(false);
+                }}
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+            >
+                <main className="max-w-7xl mx-auto pb-24 md:pb-8">
+                    {renderScreen()}
+                </main>
+            </MobileMenu>
 
             {modal.show && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay animate-in fade-in duration-200">
@@ -485,24 +508,6 @@ const App = () => {
                     </div>
                 </div>
             )}
-
-
-            <div className="md:hidden fixed bottom-6 left-6 right-6 bg-[var(--bg-secondary)]/90 backdrop-blur-lg organic-shape organic-border flex justify-around p-4 z-50 subtle-depth border-t border-[var(--border)]">
-                {[AppScreen.Dashboard, AppScreen.Calendar, AppScreen.Exercises, AppScreen.AICoach, AppScreen.Scanner, AppScreen.Settings].map((screen) => (
-                    <button
-                        key={screen}
-                        onClick={() => setCurrentScreen(screen)}
-                        className={`transition-organic p-3 rounded-xl ${currentScreen === screen ? 'bg-[var(--accent)] text-[var(--bg-primary)]' : 'text-[var(--text-secondary)]'}`}
-                    >
-                        {screen === AppScreen.Dashboard && <img src={iconDashboard} alt="Dashboard" className="w-8 h-8 object-contain" />}
-                        {screen === AppScreen.Calendar && <img src={iconCalendar} alt="Calendar" className="w-8 h-8 object-contain" />}
-                        {screen === AppScreen.Exercises && <img src={iconSchedule} alt="Schedule" className="w-8 h-8 object-contain" />}
-                        {screen === AppScreen.AICoach && <img src={iconCoach} alt="Coach" className="w-8 h-8 object-contain" />}
-                        {screen === AppScreen.Scanner && <img src={iconScanner} alt="Scanner" className="w-8 h-8 object-contain" />}
-                        {screen === AppScreen.Settings && <img src={iconSettings} alt="Settings" className="w-8 h-8 object-contain" />}
-                    </button>
-                ))}
-            </div>
         </div>
     );
 };
