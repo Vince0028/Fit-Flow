@@ -117,9 +117,9 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <div className="min-w-[700px] max-w-5xl mx-auto">
-                        <div className="grid grid-cols-7 gap-3 mb-4">
+                <div className="w-full">
+                    <div className="w-full max-w-5xl mx-auto">
+                        <div className="grid grid-cols-7 gap-1 sm:gap-3 mb-4">
                             {weekDays.map(d => (
                                 <div key={d} className="text-center text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest py-2">
                                     {d}
@@ -127,9 +127,9 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-7 gap-3">
+                        <div className="grid grid-cols-7 gap-1 sm:gap-3">
                             {calendarGrid.map((day, index) => {
-                                if (!day) return <div key={`empty-${index}`} className="min-h-[120px]" />;
+                                if (!day) return <div key={`empty-${index}`} className="min-h-[80px] sm:min-h-[120px]" />;
 
                                 const daySessions = getSessionsForDay(day);
                                 const scheduled = getScheduledForDay(day);
@@ -175,7 +175,7 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                                                 })
                                             }
                                         }}
-                                        className={`min-h-[120px] p-3 organic-shape border transition-all duration-300 group relative flex flex-col justify-between cursor-pointer hover:translate-y-[-2px] hover:shadow-lg ${cellStyle}`}
+                                        className={`min-h-[80px] sm:min-h-[120px] p-1 sm:p-3 organic-shape border transition-all duration-300 group relative flex flex-col justify-between cursor-pointer hover:translate-y-[-2px] hover:shadow-lg ${cellStyle}`}
                                     >
                                         <div className="flex justify-between items-start">
                                             <span className={`text-lg font-bold ${textColor}`}>
@@ -191,7 +191,7 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                                         <div className="space-y-2 mt-2">
                                             {/* Workout Title */}
                                             {workoutData && !workoutData.isRestDay && (
-                                                <div className="text-[9px] font-bold uppercase truncate opacity-80 pl-1 border-l-2 border-current">
+                                                <div className="text-[8px] sm:text-[9px] font-bold uppercase truncate opacity-80 pl-1 border-l-2 border-current">
                                                     {workoutData.title}
                                                 </div>
                                             )}
@@ -203,9 +203,9 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                                                 </div>
                                             )}
 
-                                            {/* Muscle Icons Row */}
+                                            {/* Muscle Icons Row - Hide on Mobile to fit */}
                                             {uniqueMuscles.length > 0 && (
-                                                <div className="flex gap-1 flex-wrap">
+                                                <div className="hidden sm:flex gap-1 flex-wrap">
                                                     {uniqueMuscles.map(m => (
                                                         <div key={m} className={`w-6 h-6 rounded-md flex items-center justify-center ${muscleIconColor}`} title={m}>
                                                             {React.cloneElement(MUSCLE_ICONS[m], { size: 14 })}
@@ -222,7 +222,7 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                                                     e.stopPropagation();
                                                     onDeleteSession(session.id);
                                                 }}
-                                                className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-10"
+                                                className="absolute top-1 right-1 sm:top-2 sm:right-2 p-1 sm:p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-10"
                                             >
                                                 <Trash2 size={12} />
                                             </button>

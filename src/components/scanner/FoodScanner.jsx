@@ -56,9 +56,13 @@ const FoodScanner = ({ onLogMeal, onDeleteLog, nutritionLogs = [], profile = nul
         const age = parseFloat(profile.age);
 
         let bmr = 0;
+        // Mifflin-St Jeor Equation
         if (profile.gender === 'Male') {
             bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+        } else if (profile.gender === 'Female') {
+            bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
         } else {
+            // Default/Fallback (standard practice often defaults to female or average)
             bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
         }
 
