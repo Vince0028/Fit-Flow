@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Loader2, ScanLine, X, ChevronRight, PieChart, Flame, Beef, Wheat, Droplet, Camera, FlipHorizontal, CheckCircle2, Calendar as CalendarIcon, ChevronLeft } from 'lucide-react';
+import { Upload, Loader2, ScanLine, X, ChevronRight, PieChart, Flame, Beef, Wheat, Droplet, Camera, FlipHorizontal, CheckCircle2, Calendar as CalendarIcon, ChevronLeft, Utensils, ScanBarcode, Pencil, Info, Trash2 } from 'lucide-react';
 import { analyzeFoodImage } from '../../services/groqService';
 
-const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'kg' }) => {
+const FoodScanner = ({ onLogMeal, onDeleteLog, nutritionLogs = [], profile = null, units = 'kg' }) => {
     const [activeTab, setActiveTab] = useState('scan'); // 'scan' | 'diary'
     const [scanMode, setScanMode] = useState('food'); // 'food' | 'label'
+    const [showTips, setShowTips] = useState(false);
 
     // Scanner State
     const [image, setImage] = useState(null);
@@ -167,6 +168,27 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    // New: Handle Renaming
+    const handleNameChange = (index, newName) => {
+        const updatedFoods = [...result.foods];
+        updatedFoods[index].name = newName;
+        setResult({ ...result, foods: updatedFoods });
+    };
+
+    // New: Handle Deletion from Modal
+    const handleDeleteLogItem = async (logId) => {
+        if (onDeleteLog) {
+            await onDeleteLog(logId);
+            // Update the local modal view
+            setViewModal(prev => {
+                const newLogs = prev.logs.filter(l => l.id !== logId);
+                const newTotal = newLogs.reduce((sum, l) => sum + (l.calories || 0), 0);
+                if (newLogs.length === 0) return null; // Close if empty
+                return { ...prev, logs: newLogs, totalCals: newTotal };
+            });
+        }
+    };
+
 
     // --- Render Helpers ---
     const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -312,8 +334,19 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
 
                                 <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                                     {viewModal.logs.map((log, i) => (
-                                        <div key={i} className="p-4 bg-[var(--bg-primary)] organic-shape border border-[var(--border)]">
-                                            <div className="flex justify-between items-start mb-2">
+                                        <div key={i} className="p-4 bg-[var(--bg-primary)] organic-shape border border-[var(--border)] relative group">
+                                            {/* DELETE BUTTON */}
+                                            {onDeleteLog && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteLogItem(log.id); }}
+                                                    className="absolute top-2 right-2 p-1.5 bg-rose-500/10 text-rose-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-500 hover:text-white"
+                                                    title="Delete Entry"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
+
+                                            <div className="flex justify-between items-start mb-2 pr-6">
                                                 <h4 className="font-bold text-lg leading-tight">{log.meal_name}</h4>
                                                 <span className="font-black text-[var(--accent)]">{log.calories}</span>
                                             </div>
@@ -351,19 +384,45 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
                     </div>
 
                     {/* --- MODE SELECTOR --- */}
-                    <div className="bg-[var(--bg-secondary)] p-1 rounded-xl flex gap-1 mb-6 border border-[var(--border)]">
-                        <button
-                            onClick={() => setScanMode('food')}
-                            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${scanMode === 'food' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/50'}`}
-                        >
-                            🍎 Food Plate
+                    <div className="flex flex-col gap-2 mb-6 w-full max-w-sm mx-auto">
+                        <div className="bg-[var(--bg-secondary)] p-1 rounded-xl flex gap-1 border border-[var(--border)]">
+                            <button onClick={() => setScanMode('food')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${scanMode === 'food' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/50'}`}>
+                                <Utensils size={18} /> Food Plate
+                            </button>
+                            <button onClick={() => setScanMode('label')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${scanMode === 'label' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/50'}`}>
+                                <ScanBarcode size={18} /> Nutrition Label
+                            </button>
+                        </div>
+
+                        <button onClick={() => setShowTips(!showTips)} className="flex items-center justify-center gap-2 text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors py-2">
+                            <Info size={14} /> Tips for best results
                         </button>
-                        <button
-                            onClick={() => setScanMode('label')}
-                            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${scanMode === 'label' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/50'}`}
-                        >
-                            📜 Nutrition Label
-                        </button>
+
+                        {showTips && (
+                            <div className="bg-[var(--bg-secondary)]/50 border border-[var(--border)] rounded-xl p-4 text-sm animate-in slide-in-from-top-2">
+                                <h4 className="font-bold text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                                    {scanMode === 'food' ? <Utensils size={14} className="text-[var(--accent)]" /> : <ScanBarcode size={14} className="text-[var(--accent)]" />}
+                                    {scanMode === 'food' ? "Food Mode Tips" : "Label Mode Tips"}
+                                </h4>
+                                <ul className="space-y-1 text-[var(--text-secondary)] list-disc pl-4 marker:text-[var(--accent)]">
+                                    {scanMode === 'food' ? (
+                                        <>
+                                            <li>Ensure good lighting without harsh shadows.</li>
+                                            <li>Capture the entire plate or meal clearly.</li>
+                                            <li>Separate distinct food items if they are piled up.</li>
+                                            <li>Avoid blurry photos for better accuracy.</li>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <li>Ensure the "Nutrition Facts" table is clearly visible.</li>
+                                            <li>Avoid glare or reflections on shiny packaging.</li>
+                                            <li>Hold the camera steady to keep text sharp.</li>
+                                            <li>Flatten the package if possible to avoid distorted text.</li>
+                                        </>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
                     </div>
 
                     <div className="w-full max-w-2xl flex flex-col gap-6">
@@ -372,6 +431,11 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
                                 {isCameraOpen ? (
                                     <div className="relative w-full h-full bg-black">
                                         <video ref={videoRef} autoPlay playsInline className={`w-full h-full object-cover transition-transform duration-300 ${isMirrored ? 'scale-x-[-1]' : ''}`} />
+                                        <div className="absolute top-6 left-0 right-0 z-20 text-center">
+                                            <span className="bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold border border-white/20">
+                                                {scanMode === 'food' ? "Point at your meal" : "Perform Valid OCR Scan on Label"}
+                                            </span>
+                                        </div>
                                         <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-8 z-20">
                                             <button onClick={stopCamera} className="p-4 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all border border-white/10"><X size={24} /></button>
                                             <button onClick={capturePhoto} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg"><div className="w-16 h-16 rounded-full bg-white transition-all active:scale-90" /></button>
@@ -386,7 +450,7 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center p-8">
-                                        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-8">Choose an option</h3>
+                                        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-8">{scanMode === 'food' ? "Upload or Snap your Meal" : "Scan Nutrition Facts Label"}</h3>
                                         <div className="flex gap-8 w-full max-w-md justify-center">
                                             <div onClick={() => fileInputRef.current?.click()} className="flex-1 flex flex-col items-center justify-center gap-4 p-6 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 cursor-pointer transition-all group/opt">
                                                 <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center group-hover/opt:scale-110 transition-transform"><Upload size={28} /></div>
@@ -402,7 +466,7 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
                                 {loading && (
                                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center text-white space-y-4 z-20">
                                         <div className="relative"><div className="absolute inset-0 bg-[var(--accent)] blur-xl opacity-20 animate-pulse"></div><Loader2 size={56} className="animate-spin text-[var(--accent)] relative z-10" /></div>
-                                        <p className="font-bold tracking-[0.2em] text-sm animate-pulse text-[var(--accent)]">ANALYZING...</p>
+                                        <p className="font-bold tracking-[0.2em] text-sm animate-pulse text-[var(--accent)]">{scanMode === 'food' ? "ANALYZING FOOD..." : "READING LABEL..."}</p>
                                     </div>
                                 )}
                             </div>
@@ -453,10 +517,26 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
                                 </div>
                                 <div className="grid gap-3">
                                     {result.foods.map((item, index) => (
-                                        <div key={index} className="flex items-center justify-between p-4 bg-[var(--bg-secondary)]/30 backdrop-blur-md rounded-2xl border border-[var(--border)]" style={{ animationDelay: `${index * 100}ms` }}>
-                                            <div className="flex items-center gap-4">
+                                        <div key={index} className="flex items-center justify-between p-4 bg-[var(--bg-secondary)]/30 backdrop-blur-md rounded-2xl border border-[var(--border)]" style={{ animationDelay: `${index * 100} ms` }}>
+                                            <div className="flex items-center gap-4 flex-1">
                                                 <div className="w-10 h-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] font-bold shadow-sm">{index + 1}</div>
-                                                <div><p className="font-bold text-[var(--text-primary)] text-lg leading-tight">{item.name}</p><p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">{item.serving_size}</p></div>
+                                                <div className="flex-1">
+                                                    {scanMode === 'label' ? (
+                                                        <div className="flex items-center gap-2 group/edit">
+                                                            <input
+                                                                type="text"
+                                                                value={item.name}
+                                                                onChange={(e) => handleNameChange(index, e.target.value)}
+                                                                className="bg-transparent font-bold text-[var(--text-primary)] text-lg leading-tight w-full focus:outline-none focus:border-b border-[var(--accent)] transition-all placeholder:opacity-50"
+                                                                placeholder="Click to name item..."
+                                                            />
+                                                            <Pencil size={12} className="opacity-0 group-hover/edit:opacity-50 text-[var(--text-secondary)]" />
+                                                        </div>
+                                                    ) : (
+                                                        <p className="font-bold text-[var(--text-primary)] text-lg leading-tight">{item.name}</p>
+                                                    )}
+                                                    <p className="text-xs text-[var(--text-secondary)] font-medium mt-0.5">{item.serving_size}</p>
+                                                </div>
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className="font-black text-[var(--text-primary)]">{item.calories} <span className="text-[10px] text-[var(--text-secondary)] font-medium uppercase">cal</span></span>
@@ -487,7 +567,7 @@ const FoodScanner = ({ onLogMeal, nutritionLogs = [], profile = null, units = 'k
 // Helper Component for Macro Circles
 const MacroRing = ({ label, value, color, icon }) => (
     <div className="flex flex-col items-center gap-1 min-w-[60px]">
-        <div className={`text-xl font-black ${color}`}>{parseInt(value)}<span className="text-xs text-[var(--text-secondary)] font-bold">g</span></div>
+        <div className={`text - xl font - black ${color} `}>{parseInt(value)}<span className="text-xs text-[var(--text-secondary)] font-bold">g</span></div>
         <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{icon} {label}</div>
     </div>
 );
@@ -499,7 +579,7 @@ const getRatio = (totals, key) => {
     const f = parseInt(totals.fats) || 0;
     const total = p + c + f;
     if (total === 0) return '33%';
-    return `${((parseInt(totals[key]) || 0) / total) * 100}%`;
+    return `${((parseInt(totals[key]) || 0) / total) * 100}% `;
 };
 
 export default FoodScanner;

@@ -368,6 +368,23 @@ const App = () => {
         });
     };
 
+    const handleDeleteMeal = async (logId) => {
+        confirmAction(
+            "Delete Meal?",
+            "This will remove this entry from your nutrition diary.",
+            async () => {
+                setNutritionLogs(prev => prev.filter(l => l.id !== logId));
+                if (session?.user?.id) {
+                    const { error } = await supabase.from('daily_nutrition').delete().eq('id', logId);
+                    if (error) {
+                        console.error("Delete meal error:", error);
+                        alert("Failed to delete meal.");
+                    }
+                }
+            }
+        );
+    };
+
     const renderScreen = () => {
         switch (currentScreen) {
             case AppScreen.Dashboard:
@@ -426,6 +443,7 @@ const App = () => {
             case AppScreen.Scanner:
                 return <FoodScanner
                     onLogMeal={handleLogMeal}
+                    onDeleteLog={handleDeleteMeal}
                     nutritionLogs={nutritionLogs}
                     profile={profile}
                     units={units}
