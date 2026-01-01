@@ -49,7 +49,9 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
         const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
         const plan = weeklyPlan[dayName];
-        if (plan && plan.exercises && plan.exercises.length > 0) {
+
+        // Return if has exercises OR is explicitly a rest day
+        if (plan && (plan.exercises.length > 0 || plan.isRestDay)) {
             return { ...plan, dayName };
         }
         return null;
@@ -80,6 +82,10 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
         }
 
         if (scheduled) {
+            // Handle Rest Day Style
+            if (scheduled.isRestDay) {
+                return "bg-blue-500/5 border-blue-500/20 opacity-60";
+            }
             return "bg-[var(--bg-primary)] border-[var(--border)] border-dashed opacity-80 hover:opacity-100";
         }
 
@@ -174,9 +180,16 @@ const CalendarView = ({ sessions, onDeleteSession, weeklyPlan, onMarkComplete, u
                                         </div>
 
                                         <div className="space-y-2 mt-2">
-                                            {workoutData && (
+                                            {workoutData && !workoutData.isRestDay && (
                                                 <div className="text-[9px] font-bold uppercase truncate opacity-80 pl-1 border-l-2 border-current">
                                                     {workoutData.title}
+                                                </div>
+                                            )}
+
+                                            {workoutData && workoutData.isRestDay && (
+                                                <div className="flex items-center gap-1 text-[var(--text-secondary)] opacity-70">
+                                                    <span className="text-lg">☕</span>
+                                                    <div className="text-[9px] font-bold uppercase tracking-wider">Rest</div>
                                                 </div>
                                             )}
 
