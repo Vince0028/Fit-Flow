@@ -19,6 +19,16 @@ const FoodScanner = ({ onLogMeal, onDeleteLog, nutritionLogs = [], profile = nul
     // Calendar State
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewModal, setViewModal] = useState(null);
+    const cameraSectionRef = useRef(null);
+
+    // Auto-scroll to camera when opened
+    useEffect(() => {
+        if (isCameraOpen && cameraSectionRef.current) {
+            setTimeout(() => {
+                cameraSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [isCameraOpen]);
 
     const fileInputRef = useRef(null);
     const videoRef = useRef(null);
@@ -426,7 +436,7 @@ const FoodScanner = ({ onLogMeal, onDeleteLog, nutritionLogs = [], profile = nul
                     </div>
 
                     <div className="w-full max-w-2xl flex flex-col gap-6">
-                        <div className="bg-[var(--bg-secondary)]/50 backdrop-blur-xl border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl relative group transition-all duration-500 hover:shadow-[var(--accent)]/10">
+                        <div ref={cameraSectionRef} className="bg-[var(--bg-secondary)]/50 backdrop-blur-xl border border-[var(--border)] rounded-3xl overflow-hidden shadow-2xl relative group transition-all duration-500 hover:shadow-[var(--accent)]/10">
                             <div className={`aspect-video w-full bg-black/20 flex items-center justify-center relative overflow-hidden transition-all duration-500 ${image || isCameraOpen ? 'h-full min-h-[400px]' : 'h-80'}`}>
                                 {isCameraOpen ? (
                                     <div className="relative w-full h-full bg-black">
@@ -567,19 +577,19 @@ const FoodScanner = ({ onLogMeal, onDeleteLog, nutritionLogs = [], profile = nul
 // Helper Component for Macro Circles
 const MacroRing = ({ label, value, color, icon }) => (
     <div className="flex flex-col items-center gap-1 min-w-[60px]">
-        <div className={`text - xl font - black ${color} `}>{parseInt(value)}<span className="text-xs text-[var(--text-secondary)] font-bold">g</span></div>
+        <div className={`text-xl font-black ${color}`}>{typeof value === 'number' ? Math.round(value * 10) / 10 : value}<span className="text-xs text-[var(--text-secondary)] font-bold">g</span></div>
         <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{icon} {label}</div>
     </div>
 );
 
 // Helper for bar widths
 const getRatio = (totals, key) => {
-    const p = parseInt(totals.protein) || 0;
-    const c = parseInt(totals.carbs) || 0;
-    const f = parseInt(totals.fats) || 0;
+    const p = parseFloat(totals.protein) || 0;
+    const c = parseFloat(totals.carbs) || 0;
+    const f = parseFloat(totals.fats) || 0;
     const total = p + c + f;
     if (total === 0) return '33%';
-    return `${((parseInt(totals[key]) || 0) / total) * 100}% `;
+    return `${((parseFloat(totals[key]) || 0) / total) * 100}%`;
 };
 
 export default FoodScanner;
