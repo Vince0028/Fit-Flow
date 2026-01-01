@@ -65,6 +65,68 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
 
                 const validValue = Math.max(0, valueToStore);
                 newExs[index] = { ...newExs[index], [field]: validValue };
+
+                // SYNC LOGIC: If updating weight, sync to all other days for the same exercise
+                if (field === 'weight') {
+                    const exerciseName = newExs[index].name;
+                    const updatedWeight = validValue;
+
+                    // Create a new full plan object
+                    const newPlan = { ...prev };
+
+                    // Iterate over all days to sync weight
+                    Object.keys(newPlan).forEach(d => {
+                        if (newPlan[d] && newPlan[d].exercises) {
+                            // Map through exercises for this day
+                            newPlan[d] = {
+                                ...newPlan[d],
+                                exercises: newPlan[d].exercises.map(ex => {
+                                    // If name matches, update weight
+                                    if (ex.name === exerciseName) {
+                                        return { ...ex, weight: updatedWeight };
+                                    }
+                                    return ex;
+                                })
+                            };
+                        }
+                    });
+
+                    // We've already updated the specific day's specific index in 'newExs', 
+                    // but the loop above might have overwritten it or we need to ensure consistency.
+                    // The loop above updates ALL matching exercises. The currently edited one is also matching.
+                    // However, we started by creating `newExs` which is the array for the *current* day.
+                    // The loop above updates `newPlan[d]`.
+                    // So we should just return `newPlan` directly, but we need to ensure the *current* editing session
+                    // works fine. 
+                    // Actually, the loop updates `newPlan` based on `prev`. `newExs` was derived from `current day`.
+                    // So we should effectively apply the sync to `newPlan`.
+
+                    // Let's discard `newExs` local mutation for the return and rely on the global sync
+                    // BUT for non-weight fields, we still need the local update.
+
+                    // Refined approach:
+                    // 1. Update the local exercise in the plan
+                    newPlan[day] = { ...newPlan[day], exercises: newExs };
+
+                    // 2. NOW sync that change to other days
+                    Object.keys(newPlan).forEach(d => {
+                        if (d === day) return; // Skip current day as we just updated it
+
+                        if (newPlan[d] && newPlan[d].exercises) {
+                            newPlan[d] = {
+                                ...newPlan[d],
+                                exercises: newPlan[d].exercises.map(ex => {
+                                    if (ex.name === exerciseName) {
+                                        return { ...ex, weight: updatedWeight };
+                                    }
+                                    return ex;
+                                })
+                            };
+                        }
+                    });
+
+                    return newPlan;
+                }
             } else {
                 newExs[index] = { ...newExs[index], [field]: value };
             }
