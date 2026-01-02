@@ -18,6 +18,7 @@ import iconSchedule from './assets/icon_schedule.png';
 import iconCoach from './assets/icon_coach.png';
 import iconSettings from './assets/icon_settings.png';
 import iconScanner from './assets/icon_scanner.png';
+import OnboardingTour from './components/onboarding/OnboardingTour';
 
 const AppScreen = {
     Dashboard: 0,
@@ -38,6 +39,17 @@ const App = () => {
     const [units, setUnits] = useState(() => localStorage.getItem('track_my_gains_units') || 'kg');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [modal, setModal] = useState({ show: false, title: '', message: '', onConfirm: () => { } });
+    const [showTour, setShowTour] = useState(false);
+
+    useEffect(() => {
+        // Check if tour should be shown
+        const hasSeenTour = localStorage.getItem('track_my_gains_tour_completed');
+        if (!hasSeenTour) {
+            // We'll wait a brief moment for data to load, or just show it if local storage is empty
+            // Ideally check sessions/logs length too, but 'hasSeenTour' is safer for manual dismiss
+            setShowTour(true);
+        }
+    }, []);
 
     // New State for Daily Tracker
     const [profile, setProfile] = useState(null);
@@ -587,6 +599,13 @@ const App = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showTour && (
+                <OnboardingTour onComplete={() => {
+                    localStorage.setItem('track_my_gains_tour_completed', 'true');
+                    setShowTour(false);
+                }} />
             )}
         </div>
     );

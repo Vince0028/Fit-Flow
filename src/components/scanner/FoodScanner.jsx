@@ -610,7 +610,7 @@ const FoodScanner = ({ onLogMeal, onDeleteLog, onUpdateLog, nutritionLogs = [], 
                                         <div className="flex items-center gap-3 bg-[var(--bg-secondary)] px-4 py-3 rounded-xl border border-[var(--border)]">
                                             <Scale size={20} className="text-[var(--text-secondary)]" />
                                             <div className="flex-1">
-                                                <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest block mb-1">Total Weight (g)</label>
+                                                <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest block mb-1">Optional Weight (g)</label>
                                                 <input
                                                     type="number"
                                                     placeholder="e.g. 500"

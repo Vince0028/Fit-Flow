@@ -162,7 +162,17 @@ const Auth = () => {
 
                 const { data, error } = await supabase.auth.signUp({
                     email,
-                    password
+                    password,
+                    options: {
+                        data: {
+                            full_name: email.split('@')[0],
+                            age: parseInt(age),
+                            height: parseFloat(height),
+                            weight: parseFloat(weight),
+                            gender: gender,
+                            blood_pressure: bloodPressure
+                        }
+                    }
                 });
                 if (error) throw error;
 
