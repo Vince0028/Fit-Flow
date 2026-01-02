@@ -80,6 +80,26 @@ const AuthBackground = () => {
 };
 
 const VerificationModal = ({ email, onClose }) => {
+    const [resending, setResending] = useState(false);
+    const [resendMsg, setResendMsg] = useState(null);
+
+    const handleResend = async () => {
+        setResending(true);
+        setResendMsg(null);
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: email,
+            });
+            if (error) throw error;
+            setResendMsg({ type: 'success', text: 'Email resent! Check your inbox & spam.' });
+        } catch (error) {
+            setResendMsg({ type: 'error', text: error.message });
+        } finally {
+            setResending(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="w-full max-w-md bg-black/80 backdrop-blur-xl p-8 organic-shape organic-border border-white/10 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative">
@@ -101,12 +121,28 @@ const VerificationModal = ({ email, onClose }) => {
                             Please check your inbox to activate your account.
                         </p>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-full py-3 bg-[var(--accent)] text-white font-bold organic-shape hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20"
-                    >
-                        Back to Login
-                    </button>
+
+                    {resendMsg && (
+                        <div className={`text-xs p-2 rounded ${resendMsg.type === 'success' ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                            {resendMsg.text}
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        <button
+                            onClick={onClose}
+                            className="w-full py-3 bg-[var(--accent)] text-white font-bold organic-shape hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20"
+                        >
+                            Back to Login
+                        </button>
+                        <button
+                            onClick={handleResend}
+                            disabled={resending}
+                            className="w-full py-2 text-slate-400 hover:text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                        >
+                            {resending ? 'Sending...' : "Didn't receive it? Resend Email"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
