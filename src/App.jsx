@@ -40,16 +40,9 @@ const App = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [modal, setModal] = useState({ show: false, title: '', message: '', onConfirm: () => { } });
     const [showTour, setShowTour] = useState(false);
+    const [tourShowSetup, setTourShowSetup] = useState(true); // Control whether to show Profile Setup loop
+    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Check if tour should be shown
-        const hasSeenTour = localStorage.getItem('track_my_gains_tour_completed');
-        if (!hasSeenTour) {
-            // We'll wait a brief moment for data to load, or just show it if local storage is empty
-            // Ideally check sessions/logs length too, but 'hasSeenTour' is safer for manual dismiss
-            setShowTour(true);
-        }
-    }, []);
 
     // New State for Daily Tracker
     const [profile, setProfile] = useState(null);
@@ -72,6 +65,7 @@ const App = () => {
             }
 
             setSession(session);
+            if (!session) setLoading(false);
         };
 
         checkSession();
@@ -143,6 +137,8 @@ const App = () => {
             } else if (nutritionError) {
                 console.error("Error fetching nutrition:", nutritionError);
             }
+
+            setLoading(false);
         };
 
         fetchData();
@@ -156,6 +152,26 @@ const App = () => {
             document.body.classList.add('light');
         }
     }, [isDarkMode]);
+
+    // Intelligent Onboarding Trigger Logic
+    useEffect(() => {
+        if (!loading && session && profile !== undefined) {
+            const tourCompleted = localStorage.getItem('track_my_gains_tour_completed');
+
+            // 1. Mandatory Profile Setup (If critical data is missing)
+            if (!profile || !profile.age || !profile.weight || !profile.height) {
+                console.log("Onboarding: Profile incomplete, showing Setup Mode.");
+                setTourShowSetup(true);
+                setShowTour(true);
+            }
+            // 2. New User Tutorial (If profile exists but no workouts ever recorded)
+            else if (sessions.length === 0 && !tourCompleted) {
+                console.log("Onboarding: New user detected, showing Tutorial Mode.");
+                setTourShowSetup(false); // Skip setup, showing only tutorial
+                setShowTour(true);
+            }
+        }
+    }, [loading, session, profile, sessions]);
 
     const confirmAction = (title, message, onConfirm) => {
         setModal({ show: true, title, message, onConfirm });
@@ -579,6 +595,16 @@ const App = () => {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-slate-950">
+                <div className="flex flex-col items-center gap-4 animate-pulse">
+                    <ScanLine size={48} className="text-emerald-400 animate-spin-slow" />
+                    <p className="text-emerald-400 font-bold tracking-widest text-sm">LOADING ASSETS...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (!session) {
         return <Auth />;
@@ -641,10 +667,14 @@ const App = () => {
             )}
 
             {showTour && (
-                <OnboardingTour onComplete={() => {
-                    localStorage.setItem('track_my_gains_tour_completed', 'true');
-                    setShowTour(false);
-                }} />
+                <OnboardingTour
+                    showSetup={tourShowSetup}
+                    onComplete={() => {
+                        setShowTour(false);
+                        localStorage.setItem('track_my_gains_tour_completed', 'true');
+                        if (tourShowSetup) window.location.reload();
+                    }}
+                />
             )}
         </div>
     );
