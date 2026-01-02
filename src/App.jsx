@@ -129,35 +129,8 @@ const App = () => {
 
             if (profileData) {
                 setProfile(profileData);
-            } else {
-                // FALLBACK: If profile missing but metadata exists (Fix for SingUp Sync)
-                const metadata = session.user.user_metadata;
-                if (metadata && metadata.age) {
-                    console.log("Attempting to sync missing profile from metadata...", metadata);
-                    const { data: recoveredProfile, error: recoveryError } = await supabase
-                        .from('profiles')
-                        .upsert({
-                            id: userId,
-                            email: session.user.email,
-                            full_name: metadata.full_name,
-                            age: metadata.age,
-                            height: metadata.height,
-                            weight: metadata.weight,
-                            gender: metadata.gender,
-                            blood_pressure: metadata.blood_pressure,
-                            updated_at: new Date()
-                        })
-                        .select()
-                        .single();
-
-                    if (recoveredProfile) {
-                        setProfile(recoveredProfile);
-                        console.log("Profile successfully recovered from metadata.");
-                    } else if (recoveryError) {
-                        console.error("Failed to recover profile:", recoveryError);
-                    }
-                }
             }
+
 
             // Fetch Nutrition Logs
             const { data: nutritionData, error: nutritionError } = await supabase

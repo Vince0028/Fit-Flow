@@ -279,6 +279,8 @@ const Settings = ({ isDarkMode, toggleTheme, confirmAction, onSignOut, onResetDa
                         Delete Account (Permanent)
                     </button>
 
+
+
                     <div className="text-center space-y-2 mt-8">
                         <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed px-4">
                             TrackMyGains now syncs with the secure backend.
