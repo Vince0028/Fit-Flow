@@ -48,7 +48,9 @@ export async function analyzeFoodImage(base64Image, mode = 'food', weightHint = 
             
             RULES:
             1. **VISUAL PRECISION**: Don't guess generic values; derive them from the visual volume.
-            2. **FORMAT**: Return raw JSON only.
+            2. **SINGLE ITEM CHECK**: If the image contains a single unit (e.g., 1 chip, 1 cracker), calculate calories for THAT SPECIFIC UNIT only (e.g. 10-15 cal), NOT a standard serving (120 cal).
+            3. **VISUAL SCALE**: Be conservative. If an item looks small (e.g., a single potato chip), estimate typical weight (e.g., 2-3g) and calculate based on that.
+            4. **FORMAT**: Return raw JSON only.
             
             Output format:
             {
