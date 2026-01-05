@@ -141,7 +141,10 @@ RULES:
 1. **VISUAL PRECISION**: Don't guess generic values; derive them from the visual volume.
 2. **SINGLE ITEM CHECK**: If the image contains a single unit (e.g., 1 chip, 1 cracker), calculate calories for THAT SPECIFIC UNIT only (e.g. 10-15 cal), NOT a standard serving (120 cal).
 3. **VISUAL SCALE**: Be conservative. If an item looks small (e.g., a single potato chip), estimate typical weight (e.g., 2-3g) and calculate based on that.
-4. **FORMAT**: Return raw JSON only.
+4. **HIDDEN DETECTIVE**: Check for glossiness, sheen, or sauce residues. If present, assume cooking oil/butter was used and ADD a separate 'Oil/Butter' item (est. 1tsp - 1tbsp).
+5. **COOKING STATE**: Identify if food is COOKED or RAW. Use the caloric density appropriate for the VISUAL STATE (e.g. 100g Cooked Rice = ~130cal, whereas 100g Raw Rice = ~360cal).
+6. **CONTEXT AWARENESS**: If the setting looks like a restaurant or fast-food container, assume higher oil/sodium content.
+7. **FORMAT**: Return raw JSON only.
 
 Output format:
 {
