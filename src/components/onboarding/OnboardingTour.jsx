@@ -40,8 +40,8 @@ const TOUR_STEPS = [
     }
 ];
 
-const OnboardingTour = ({ onComplete }) => {
-    const [step, setStep] = useState(0);
+const OnboardingTour = ({ onComplete, showSetup = true }) => {
+    const [step, setStep] = useState(showSetup ? 0 : 1);
     const [isVisible, setIsVisible] = useState(true);
     const [loading, setLoading] = useState(false);
 
