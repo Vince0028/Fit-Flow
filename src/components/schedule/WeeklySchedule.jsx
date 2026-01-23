@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Pencil, Trash2, Plus, X } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { MUSCLE_ICONS, getMuscleGroup, COMMON_EXERCISES } from '../../constants';
 import { convertWeight, toKg } from '../common/UnitConverter';
 
@@ -9,6 +9,17 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
     const [editingDay, setEditingDay] = useState(null);
     const [activeMuscleDropdown, setActiveMuscleDropdown] = useState({ day: null, index: null });
     const [deleteModal, setDeleteModal] = useState({ show: false, day: null, exIndex: null, exerciseName: '', otherDays: [] });
+    const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, exerciseName: '', scope: '' });
+
+    // Get the end of current week (Sunday)
+    const getEndOfWeek = () => {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+        const endOfWeek = new Date(now);
+        endOfWeek.setDate(now.getDate() + daysUntilSunday);
+        return endOfWeek.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    };
 
     // Find which other days have the same exercise
     const getOtherDaysWithExercise = (exerciseName, currentDay) => {
@@ -29,6 +40,7 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
     };
 
     const removeExerciseFromDay = (day, exIndex) => {
+        const exerciseName = weeklyPlan[day].exercises[exIndex]?.name;
         setWeeklyPlan(prev => ({
             ...prev,
             [day]: {
@@ -37,6 +49,9 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
             }
         }));
         closeDeleteModal();
+        // Show confirmation notification
+        setDeleteConfirmation({ show: true, exerciseName, scope: day });
+        setTimeout(() => setDeleteConfirmation({ show: false, exerciseName: '', scope: '' }), 5000);
     };
 
     const removeExerciseFromAllDays = (exerciseName) => {
@@ -53,6 +68,9 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
             return newPlan;
         });
         closeDeleteModal();
+        // Show confirmation notification
+        setDeleteConfirmation({ show: true, exerciseName, scope: 'all days' });
+        setTimeout(() => setDeleteConfirmation({ show: false, exerciseName: '', scope: '' }), 5000);
     };
 
     const addExercise = (day) => {
@@ -405,6 +423,21 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
                             </div>
                         </div>
 
+                        {/* Important Notice */}
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4">
+                            <div className="flex items-start gap-2">
+                                <Info size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                                <div className="text-xs text-amber-200/80">
+                                    <p className="font-semibold text-amber-400 mb-1">Important:</p>
+                                    <ul className="space-y-1 list-disc pl-3">
+                                        <li>Your <strong>workout history is NOT affected</strong> - all past records are safe</li>
+                                        <li>Today's Dashboard workout remains unchanged</li>
+                                        <li>This only changes your <strong>future schedule template</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
                         {deleteModal.otherDays.length > 0 ? (
                             <>
                                 <p className="text-sm text-[var(--text-secondary)] mb-4">
@@ -429,7 +462,7 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
                         ) : (
                             <>
                                 <p className="text-sm text-[var(--text-secondary)] mb-4">
-                                    This will remove the exercise from {deleteModal.day}.
+                                    This will remove the exercise from {deleteModal.day}'s schedule.
                                 </p>
                                 <button
                                     onClick={() => removeExerciseFromDay(deleteModal.day, deleteModal.exIndex)}
@@ -446,6 +479,36 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
                         >
                             Cancel
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Notification */}
+            {deleteConfirmation.show && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <div className="bg-[var(--bg-secondary)] border border-emerald-500/30 rounded-2xl p-4 shadow-2xl shadow-black/20 max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-emerald-500/20 rounded-full">
+                                <CheckCircle2 size={20} className="text-emerald-500" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-bold text-[var(--text-primary)] text-sm">Exercise Removed</p>
+                                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                                    "{deleteConfirmation.exerciseName}" removed from {deleteConfirmation.scope}.
+                                </p>
+                                <div className="mt-2 pt-2 border-t border-[var(--border)]">
+                                    <p className="text-[10px] text-emerald-400 font-medium">
+                                        ✓ Your past workout history is unchanged
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setDeleteConfirmation({ show: false, exerciseName: '', scope: '' })}
+                                className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
