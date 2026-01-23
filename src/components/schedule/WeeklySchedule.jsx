@@ -8,27 +8,51 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const [editingDay, setEditingDay] = useState(null);
     const [activeMuscleDropdown, setActiveMuscleDropdown] = useState({ day: null, index: null });
+    const [deleteModal, setDeleteModal] = useState({ show: false, day: null, exIndex: null, exerciseName: '', otherDays: [] });
 
-
-
-
-
-
-
-    const removeExercise = (day, exIndex) => {
-        confirmAction(
-            "Remove Exercise?",
-            "This will remove this exercise from your recurring weekly schedule.",
-            () => {
-                setWeeklyPlan(prev => ({
-                    ...prev,
-                    [day]: {
-                        ...prev[day],
-                        exercises: prev[day].exercises.filter((_, i) => i !== exIndex)
-                    }
-                }));
-            }
+    // Find which other days have the same exercise
+    const getOtherDaysWithExercise = (exerciseName, currentDay) => {
+        return Object.keys(weeklyPlan).filter(d => 
+            d !== currentDay && 
+            weeklyPlan[d]?.exercises?.some(ex => ex.name === exerciseName)
         );
+    };
+
+    const openDeleteModal = (day, exIndex) => {
+        const exerciseName = weeklyPlan[day].exercises[exIndex]?.name;
+        const otherDays = getOtherDaysWithExercise(exerciseName, day);
+        setDeleteModal({ show: true, day, exIndex, exerciseName, otherDays });
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteModal({ show: false, day: null, exIndex: null, exerciseName: '', otherDays: [] });
+    };
+
+    const removeExerciseFromDay = (day, exIndex) => {
+        setWeeklyPlan(prev => ({
+            ...prev,
+            [day]: {
+                ...prev[day],
+                exercises: prev[day].exercises.filter((_, i) => i !== exIndex)
+            }
+        }));
+        closeDeleteModal();
+    };
+
+    const removeExerciseFromAllDays = (exerciseName) => {
+        setWeeklyPlan(prev => {
+            const newPlan = { ...prev };
+            Object.keys(newPlan).forEach(d => {
+                if (newPlan[d] && newPlan[d].exercises) {
+                    newPlan[d] = {
+                        ...newPlan[d],
+                        exercises: newPlan[d].exercises.filter(ex => ex.name !== exerciseName)
+                    };
+                }
+            });
+            return newPlan;
+        });
+        closeDeleteModal();
     };
 
     const addExercise = (day) => {
@@ -328,7 +352,7 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
 
                                                 {isEditing && (
                                                     <button
-                                                        onClick={() => removeExercise(day, i)}
+                                                        onClick={() => openDeleteModal(day, i)}
                                                         className="p-2 text-rose-400 hover:text-rose-500 transition-organic"
                                                     >
                                                         <Trash2 size={16} />
@@ -358,6 +382,73 @@ const WeeklySchedule = ({ weeklyPlan, setWeeklyPlan, confirmAction, units }) => 
                     <option key={i} value={ex} />
                 ))}
             </datalist>
+
+            {/* Delete Exercise Modal */}
+            {deleteModal.show && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDeleteModal} />
+                    <div className="relative bg-[var(--bg-secondary)] border border-[var(--border)] organic-shape p-6 max-w-md w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+                        <button
+                            onClick={closeDeleteModal}
+                            className="absolute top-4 right-4 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                        
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-rose-500/10 rounded-full">
+                                <Trash2 size={24} className="text-rose-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold">Remove Exercise?</h3>
+                                <p className="text-sm text-[var(--text-secondary)]">"{deleteModal.exerciseName}"</p>
+                            </div>
+                        </div>
+
+                        {deleteModal.otherDays.length > 0 ? (
+                            <>
+                                <p className="text-sm text-[var(--text-secondary)] mb-4">
+                                    This exercise also appears on: <span className="font-semibold text-[var(--text-primary)]">{deleteModal.otherDays.join(', ')}</span>
+                                </p>
+                                
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => removeExerciseFromDay(deleteModal.day, deleteModal.exIndex)}
+                                        className="w-full py-3 px-4 bg-[var(--bg-primary)] border border-[var(--border)] organic-shape font-semibold hover:bg-[var(--bg-secondary)] transition-organic flex items-center justify-center gap-2"
+                                    >
+                                        Remove from {deleteModal.day} only
+                                    </button>
+                                    <button
+                                        onClick={() => removeExerciseFromAllDays(deleteModal.exerciseName)}
+                                        className="w-full py-3 px-4 bg-rose-500/20 border border-rose-500/30 text-rose-400 organic-shape font-semibold hover:bg-rose-500/30 transition-organic flex items-center justify-center gap-2"
+                                    >
+                                        Remove from all days ({deleteModal.otherDays.length + 1} total)
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm text-[var(--text-secondary)] mb-4">
+                                    This will remove the exercise from {deleteModal.day}.
+                                </p>
+                                <button
+                                    onClick={() => removeExerciseFromDay(deleteModal.day, deleteModal.exIndex)}
+                                    className="w-full py-3 px-4 bg-rose-500/20 border border-rose-500/30 text-rose-400 organic-shape font-semibold hover:bg-rose-500/30 transition-organic"
+                                >
+                                    Remove Exercise
+                                </button>
+                            </>
+                        )}
+
+                        <button
+                            onClick={closeDeleteModal}
+                            className="w-full mt-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
