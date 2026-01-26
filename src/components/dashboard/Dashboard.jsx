@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { TrendingUp, Flame, Target, CalendarDays, CheckCircle2, Circle, Edit3 } from 'lucide-react';
+import { TrendingUp, Flame, Target, CalendarDays, CheckCircle2, Circle, Edit3, Trash2, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MUSCLE_ICONS } from '../../constants';
 import { convertWeight, toKg } from '../common/UnitConverter';
 
-const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units, onNavigateToHistory, weeklyPlan }) => {
+const Dashboard = ({ sessions, todayWorkout, onUpdateSession, onDeleteExercise, units, onNavigateToHistory, weeklyPlan }) => {
     const [editingExercise, setEditingExercise] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ show: false, exercise: null });
 
 
     const getWeeklyProgress = () => {
@@ -176,6 +177,33 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units, onNavigateT
         onUpdateSession(updated);
     };
 
+    // Delete exercise from today's session only
+    const handleDeleteFromToday = (exerciseId) => {
+        if (!todayWorkout) return;
+        const updated = {
+            ...todayWorkout,
+            exercises: todayWorkout.exercises.filter(ex => ex.id !== exerciseId)
+        };
+        onUpdateSession(updated);
+        setDeleteModal({ show: false, exercise: null });
+    };
+
+    // Delete exercise from today AND from the weekly schedule
+    const handleDeleteFromAll = (exercise) => {
+        if (!todayWorkout || !onDeleteExercise) return;
+
+        // First remove from today's session
+        const updated = {
+            ...todayWorkout,
+            exercises: todayWorkout.exercises.filter(ex => ex.id !== exercise.id)
+        };
+        onUpdateSession(updated);
+
+        // Then remove from weekly plan (via parent callback)
+        onDeleteExercise(exercise.name);
+        setDeleteModal({ show: false, exercise: null });
+    };
+
     return (
         <div className="p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div>
@@ -251,12 +279,21 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units, onNavigateT
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => setEditingExercise(ex.id)}
-                                                    className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-organic"
-                                                >
-                                                    <Edit3 size={18} />
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => setEditingExercise(ex.id)}
+                                                        className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-organic"
+                                                    >
+                                                        <Edit3 size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteModal({ show: true, exercise: ex })}
+                                                        className="p-2 text-[var(--text-secondary)] hover:text-rose-400 transition-organic"
+                                                        title="Delete exercise"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -353,6 +390,63 @@ const Dashboard = ({ sessions, todayWorkout, onUpdateSession, units, onNavigateT
                     </div>
                 </div>
             </div>
+
+            {/* Delete Exercise Modal */}
+            {deleteModal.show && deleteModal.exercise && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteModal({ show: false, exercise: null })} />
+                    <div className="relative bg-[var(--bg-secondary)] border border-[var(--border)] organic-shape p-6 max-w-md w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setDeleteModal({ show: false, exercise: null })}
+                            className="absolute top-4 right-4 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-rose-500/10 rounded-full">
+                                <Trash2 size={24} className="text-rose-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold">Remove Exercise?</h3>
+                                <p className="text-sm text-[var(--text-secondary)]">"{deleteModal.exercise.name}"</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4">
+                            <p className="text-xs text-amber-200/80">
+                                Choose how you want to remove this exercise:
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => handleDeleteFromToday(deleteModal.exercise.id)}
+                                className="w-full py-3 px-4 bg-[var(--bg-primary)] border border-[var(--border)] organic-shape font-semibold hover:bg-[var(--bg-secondary)] transition-organic text-left"
+                            >
+                                <div className="font-bold">Remove from Today Only</div>
+                                <div className="text-xs text-[var(--text-secondary)] mt-1">Keep in schedule for future weeks</div>
+                            </button>
+                            {onDeleteExercise && (
+                                <button
+                                    onClick={() => handleDeleteFromAll(deleteModal.exercise)}
+                                    className="w-full py-3 px-4 bg-rose-500/20 border border-rose-500/30 text-rose-400 organic-shape font-semibold hover:bg-rose-500/30 transition-organic text-left"
+                                >
+                                    <div className="font-bold">Remove from All Future Workouts</div>
+                                    <div className="text-xs text-rose-300/70 mt-1">Delete from today + weekly schedule</div>
+                                </button>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => setDeleteModal({ show: false, exercise: null })}
+                            className="w-full mt-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

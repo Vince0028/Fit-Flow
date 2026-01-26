@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Zap, Calendar, MessageSquare, AlertTriangle, Settings as SettingsIcon, ScanLine, TrendingUp } from 'lucide-react';
 import Navigation from './components/layout/Navigation';
 import MobileMenu from './components/layout/MobileMenu';
@@ -42,6 +42,7 @@ const App = () => {
     const [showTour, setShowTour] = useState(false);
     const [tourShowSetup, setTourShowSetup] = useState(true); // Control whether to show Profile Setup loop
     const [loading, setLoading] = useState(true);
+    const sessionSyncTimeoutRef = useRef(null);
 
 
     // New State for Daily Tracker
@@ -76,7 +77,13 @@ const App = () => {
             setSession(session);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            // Cleanup session sync timeout on unmount
+            if (sessionSyncTimeoutRef.current) {
+                clearTimeout(sessionSyncTimeoutRef.current);
+            }
+        };
     }, []);
 
 
@@ -269,7 +276,7 @@ const App = () => {
                 ? newValueOrFn(weeklyPlan)
                 : newValueOrFn;
 
-            // Side Effects (Supabase)
+            // Side Effects (Supabase) - debounced to prevent excessive writes during typing
             if (session?.user?.id && newPlan) {
                 supabase.from('weekly_plan')
                     .upsert({ user_id: session.user.id, plan: newPlan })
@@ -280,62 +287,72 @@ const App = () => {
                     });
             }
 
-            // Sync Schedule -> Dashboard (Active Session)
+            // Sync Schedule -> Dashboard (Active Session) - DEBOUNCED
+            // This prevents duplicate exercises when typing exercise names
             if (shouldSyncToSession) {
-                const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-                // Check if the update affects today's plan
-                const todayPlan = newPlan[dayName];
+                // Clear any pending sync
+                if (sessionSyncTimeoutRef.current) {
+                    clearTimeout(sessionSyncTimeoutRef.current);
+                }
 
-                // Get today's session from *current* sessions state (also closed over)
-                const todayStr = new Date().toDateString();
-                const todaySession = sessions.find(s => new Date(s.date).toDateString() === todayStr);
+                // Debounce the session sync by 500ms to avoid creating duplicates during typing
+                sessionSyncTimeoutRef.current = setTimeout(() => {
+                    const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+                    // Check if the update affects today's plan
+                    const todayPlan = newPlan[dayName];
 
-                if (todaySession && todayPlan) {
-                    // Check if we need to sync updates
-                    // We map session exercises and update them if they exist for the same name
-                    let hasChanges = false;
+                    // Get today's session from *current* sessions state
+                    const todayStr = new Date().toDateString();
+                    const todaySession = sessions.find(s => new Date(s.date).toDateString() === todayStr);
 
-                    const updatedExercises = todaySession.exercises.map(sessionEx => {
-                        const planEx = todayPlan.exercises.find(p => p.name === sessionEx.name);
-                        if (planEx) {
-                            // Check for differences in relevant fields
-                            if (sessionEx.weight !== planEx.weight || sessionEx.sets !== planEx.sets || sessionEx.reps !== planEx.reps) {
-                                hasChanges = true;
-                                return {
-                                    ...sessionEx,
-                                    weight: planEx.weight,
-                                    sets: planEx.sets,
-                                    reps: planEx.reps,
-                                    muscleGroup: planEx.muscleGroup || sessionEx.muscleGroup
-                                };
+                    if (todaySession && todayPlan) {
+                        // Check if we need to sync updates
+                        // We map session exercises and update them if they exist for the same name
+                        let hasChanges = false;
+
+                        const updatedExercises = todaySession.exercises.map(sessionEx => {
+                            const planEx = todayPlan.exercises.find(p => p.name === sessionEx.name);
+                            if (planEx) {
+                                // Check for differences in relevant fields
+                                if (sessionEx.weight !== planEx.weight || sessionEx.sets !== planEx.sets || sessionEx.reps !== planEx.reps) {
+                                    hasChanges = true;
+                                    return {
+                                        ...sessionEx,
+                                        weight: planEx.weight,
+                                        sets: planEx.sets,
+                                        reps: planEx.reps,
+                                        muscleGroup: planEx.muscleGroup || sessionEx.muscleGroup
+                                    };
+                                }
                             }
-                        }
-                        return sessionEx;
-                    });
-
-                    // Handle added exercises (in Plan but not in Session)
-                    const sessionExNames = new Set(todaySession.exercises.map(e => e.name));
-                    const newExercises = todayPlan.exercises
-                        .filter(p => !sessionExNames.has(p.name))
-                        .map((p, i) => {
-                            hasChanges = true;
-                            return {
-                                ...p,
-                                id: `ex-new-${i}-${Date.now()}`,
-                                completed: false,
-                                weight: p.weight || 0
-                            };
+                            return sessionEx;
                         });
 
-                    if (hasChanges) {
-                        const newSession = {
-                            ...todaySession,
-                            exercises: [...updatedExercises, ...newExercises]
-                        };
-                        // Call updateSession but skip reverse sync
-                        updateSession(newSession, false);
+                        // Handle added exercises (in Plan but not in Session)
+                        // Only add exercises that have a non-default name (not "New Exercise")
+                        const sessionExNames = new Set(todaySession.exercises.map(e => e.name));
+                        const newExercises = todayPlan.exercises
+                            .filter(p => !sessionExNames.has(p.name) && p.name !== 'New Exercise')
+                            .map((p, i) => {
+                                hasChanges = true;
+                                return {
+                                    ...p,
+                                    id: `ex-new-${i}-${Date.now()}`,
+                                    completed: false,
+                                    weight: p.weight || 0
+                                };
+                            });
+
+                        if (hasChanges) {
+                            const newSession = {
+                                ...todaySession,
+                                exercises: [...updatedExercises, ...newExercises]
+                            };
+                            // Call updateSession but skip reverse sync
+                            updateSession(newSession, false);
+                        }
                     }
-                }
+                }, 500); // Wait 500ms after last change before syncing
             }
 
             return newPlan;
@@ -462,6 +479,22 @@ const App = () => {
         );
     };
 
+    // Delete exercise from weekly schedule (all days)
+    const deleteExerciseFromSchedule = (exerciseName) => {
+        handleSetWeeklyPlan(prev => {
+            const newPlan = { ...prev };
+            Object.keys(newPlan).forEach(d => {
+                if (newPlan[d] && newPlan[d].exercises) {
+                    newPlan[d] = {
+                        ...newPlan[d],
+                        exercises: newPlan[d].exercises.filter(ex => ex.name !== exerciseName)
+                    };
+                }
+            });
+            return newPlan;
+        }, false); // Don't sync back to session since we're deleting
+    };
+
     const renderScreen = () => {
         switch (currentScreen) {
             case AppScreen.Dashboard:
@@ -469,6 +502,7 @@ const App = () => {
                     sessions={sessions}
                     todayWorkout={getTodayWorkout()}
                     onUpdateSession={updateSession}
+                    onDeleteExercise={deleteExerciseFromSchedule}
                     units={units}
                     onNavigateToHistory={() => setCurrentScreen(AppScreen.History)}
                     weeklyPlan={weeklyPlan}
